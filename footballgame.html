@@ -1,0 +1,3310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Football Career Simulator</title>
+<style>
+  :root {
+    --bg-dark: #0d1117;
+    --bg-panel: #151b23;
+    --bg-panel-2: #1b222c;
+    --accent: #2ecc71;
+    --accent-dark: #27ae60;
+    --accent-glow: rgba(46, 204, 113, 0.35);
+    --text-main: #e6edf3;
+    --text-muted: #8b949e;
+    --border: #2a323c;
+    --danger: #ff6b6b;
+    --field-line: rgba(46, 204, 113, 0.08);
+    --gold: #f1c40f;
+    --blue: #3498db;
+    --purple: #8e44ad;
+    --bronze: #a9743c;
+    --silver: #c0c0c0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(46, 204, 113, 0.07), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(46, 204, 113, 0.05), transparent 45%),
+      var(--bg-dark);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Subtle pitch-line background pattern */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      repeating-linear-gradient(0deg, var(--field-line) 0, var(--field-line) 1px, transparent 1px, transparent 80px),
+      repeating-linear-gradient(90deg, var(--field-line) 0, var(--field-line) 1px, transparent 1px, transparent 80px);
+    opacity: 0.6;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .app.app-wide {
+    max-width: 1000px;
+  }
+
+  /* Step progress indicator */
+  .stepper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .stepper .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stepper .dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.25s ease;
+  }
+
+  .stepper .step-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+  }
+
+  .stepper .step.active .dot {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    border-color: var(--accent);
+    color: #06130b;
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+
+  .stepper .step.active .step-label {
+    color: var(--text-main);
+    font-weight: 600;
+  }
+
+  .stepper .step.done .dot {
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
+    color: #06130b;
+  }
+
+  .stepper .step-line {
+    width: 50px;
+    height: 2px;
+    background: var(--border);
+    margin: 0 8px;
+    margin-bottom: 20px;
+  }
+
+  .stepper .step-line.done {
+    background: var(--accent-dark);
+  }
+
+  .brand {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .brand .ball {
+    font-size: 42px;
+    display: inline-block;
+    animation: bob 3s ease-in-out infinite;
+  }
+
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .brand h1 {
+    margin: 10px 0 6px;
+    font-size: 28px;
+    letter-spacing: 0.5px;
+    background: linear-gradient(90deg, #fff, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .brand p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    letter-spacing: 0.3px;
+  }
+
+  .card {
+    background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 36px 32px;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .card h2 {
+    margin: 0 0 6px;
+    font-size: 19px;
+    font-weight: 600;
+  }
+
+  .card .subtitle {
+    margin: 0 0 28px;
+    color: var(--text-muted);
+    font-size: 13.5px;
+  }
+
+  .field {
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 13px 14px;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-main);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .field select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'><path d='M1 1l6 6 6-6' stroke='%238b949e' stroke-width='1.6' fill='none' fill-rule='evenodd'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    cursor: pointer;
+  }
+
+  .field input::placeholder {
+    color: #5b6572;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--accent);
+    background: #111820;
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+
+  .field input.invalid,
+  .field select.invalid {
+    border-color: var(--danger);
+  }
+
+  .error-msg {
+    display: none;
+    color: var(--danger);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .error-msg.show {
+    display: block;
+  }
+
+  .two-col {
+    display: flex;
+    gap: 16px;
+  }
+
+  .two-col .field {
+    flex: 1;
+  }
+
+  .btn-start {
+    width: 100%;
+    margin-top: 10px;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: #06130b;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    box-shadow: 0 10px 25px var(--accent-glow);
+  }
+
+  .btn-start:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+  }
+
+  .btn-start:active {
+    transform: translateY(0);
+  }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Success panel after submission */
+  .welcome-result {
+    display: none;
+    text-align: center;
+    padding: 10px 0 4px;
+  }
+
+  .welcome-result.show {
+    display: block;
+  }
+
+  .welcome-result .check {
+    font-size: 44px;
+    margin-bottom: 10px;
+  }
+
+  .welcome-result h3 {
+    margin: 0 0 8px;
+    font-size: 20px;
+  }
+
+  .welcome-result p {
+    margin: 4px 0;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .welcome-result .summary {
+    margin-top: 16px;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: left;
+  }
+
+  .welcome-result .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .welcome-result .summary-row:last-child {
+    border-bottom: none;
+  }
+
+  .welcome-result .summary-row span:first-child {
+    color: var(--text-muted);
+  }
+
+  .welcome-result .summary-row span:last-child {
+    font-weight: 600;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* ===== Step 2: Team Contracts ===== */
+  .contracts-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .contracts-header h2 {
+    margin: 10px 0 6px;
+    font-size: 26px;
+    letter-spacing: 0.3px;
+  }
+
+  .contracts-header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .contracts-header .badge-emoji {
+    font-size: 36px;
+  }
+
+  .teams-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+
+  .team-card {
+    position: relative;
+    background: linear-gradient(165deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .team-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--team-color, var(--accent));
+  }
+
+  .team-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .team-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow), 0 22px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .team-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tier-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .tier-badge[data-tier="big"] {
+    color: var(--gold);
+    border-color: rgba(241, 196, 15, 0.35);
+    background: rgba(241, 196, 15, 0.08);
+  }
+
+  .tier-badge[data-tier="medium"] {
+    color: var(--blue);
+    border-color: rgba(52, 152, 219, 0.35);
+    background: rgba(52, 152, 219, 0.08);
+  }
+
+  .tier-badge[data-tier="small"] {
+    color: var(--accent);
+    border-color: rgba(46, 204, 113, 0.35);
+    background: rgba(46, 204, 113, 0.08);
+  }
+
+  /* Club crest with graceful fallback to initials if the logo fails to load */
+  .logo-chip {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  .logo-chip img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .logo-chip .crest-fallback {
+    display: none;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: #06130b;
+  }
+
+  .logo-chip.sm {
+    width: 36px;
+    height: 36px;
+  }
+
+  .logo-chip.lg {
+    width: 72px;
+    height: 72px;
+  }
+
+  .logo-chip.xl {
+    width: 88px;
+    height: 88px;
+  }
+
+  .team-name {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .contract-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .contract-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    direction: rtl;
+  }
+
+  .contract-row .c-label {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .contract-row .c-value {
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .contract-row .c-value.highlight-good {
+    color: var(--accent);
+  }
+
+  .contract-row .c-value.highlight-bad {
+    color: var(--danger);
+  }
+
+  .sign-btn {
+    width: 100%;
+    margin-top: 4px;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: #06130b;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+  }
+
+  .sign-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+  }
+
+  .sign-btn.signed {
+    background: linear-gradient(135deg, #3a4452, #232a33);
+    color: var(--accent);
+    cursor: default;
+    transform: none;
+  }
+
+  .sign-btn:disabled:not(.signed) {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .selection-note {
+    display: none;
+    text-align: center;
+    margin-top: 26px;
+    padding: 16px;
+    background: #0f141a;
+    border: 1px solid var(--accent-dark);
+    border-radius: 12px;
+    color: var(--text-main);
+    font-size: 14.5px;
+    direction: rtl;
+  }
+
+  .selection-note.show {
+    display: block;
+  }
+
+  @media (max-width: 900px) {
+    .teams-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ===== Step 3: Shirt number selection ===== */
+  .shirt-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    direction: rtl;
+  }
+
+  .shirt-card {
+    background: linear-gradient(165deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .shirt-card .num {
+    font-size: 34px;
+    font-weight: 800;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  .shirt-card .shirt-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .shirt-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+  }
+
+  .shirt-card.selected {
+    border-color: var(--accent);
+    background: linear-gradient(165deg, #16331f 0%, var(--bg-panel-2) 100%);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  @media (max-width: 560px) {
+    .shirt-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* ===== Step 4: Career Hub ===== */
+  .hub-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 26px;
+    direction: rtl;
+  }
+
+  .hub-top h2 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  .hub-top p {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 13.5px;
+  }
+
+  .hub-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 24px;
+  }
+
+  .hub-card {
+    background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  .hub-card h3 {
+    margin: 0 0 18px;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    direction: rtl;
+  }
+
+  .profile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    direction: rtl;
+  }
+
+  .profile-row:last-child {
+    border-bottom: none;
+  }
+
+  .profile-row .p-label {
+    color: var(--text-muted);
+  }
+
+  .profile-row .p-value {
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stat-block {
+    margin-bottom: 18px;
+  }
+
+  .stat-block:last-child {
+    margin-bottom: 0;
+  }
+
+  .stat-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13.5px;
+    margin-bottom: 8px;
+    direction: rtl;
+  }
+
+  .stat-label-row .stat-name {
+    color: var(--text-muted);
+  }
+
+  .stat-label-row .stat-value {
+    font-weight: 700;
+  }
+
+  .stat-bar-track {
+    height: 10px;
+    border-radius: 6px;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s ease;
+  }
+
+  .fill-rating {
+    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  }
+
+  .fill-fitness {
+    background: linear-gradient(90deg, #3498db, #2980b9);
+  }
+
+  .fill-sharp {
+    background: linear-gradient(90deg, #a855f7, #7e22ce);
+  }
+
+  .hub-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .btn-secondary {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #0f141a;
+    color: var(--text-main);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .btn-play-match {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: #06130b;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    box-shadow: 0 10px 30px var(--accent-glow);
+    animation: pulseGlow 2.4s ease-in-out infinite;
+  }
+
+  .btn-play-match:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.07);
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 10px 30px var(--accent-glow); }
+    50% { box-shadow: 0 10px 40px rgba(46, 204, 113, 0.6); }
+  }
+
+  .spinner {
+    width: 15px;
+    height: 15px;
+    border: 2.5px solid rgba(255, 255, 255, 0.3);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .match-log {
+    margin-top: 20px;
+    direction: rtl;
+  }
+
+  .match-log-item {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .match-log-item:last-child {
+    border-bottom: none;
+  }
+
+  /* ===== Step 5: Live Match Engine ===== */
+  .match-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+  }
+
+  .match-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 140px;
+    text-align: center;
+  }
+
+  .match-team .team-label {
+    font-size: 14.5px;
+    font-weight: 700;
+  }
+
+  .match-score {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    min-width: 110px;
+    text-align: center;
+  }
+
+  .match-timer-wrap {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+
+  .match-timer-wrap .minute-display {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .match-progress-track {
+    height: 8px;
+    border-radius: 6px;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    max-width: 480px;
+    margin: 10px auto 0;
+  }
+
+  .match-progress-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+    width: 0%;
+    transition: width 0.4s linear;
+  }
+
+  .commentary-box {
+    margin: 22px auto 0;
+    max-width: 560px;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    text-align: center;
+    font-size: 16px;
+    min-height: 30px;
+    direction: rtl;
+  }
+
+  .match-stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    margin-top: 22px;
+    direction: rtl;
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+
+  .match-stats-row strong {
+    color: var(--text-main);
+    font-size: 15px;
+  }
+
+  /* Decision & result overlays */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 12, 0.85);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 60;
+    backdrop-filter: blur(3px);
+  }
+
+  .overlay.show {
+    display: flex;
+  }
+
+  .overlay-box {
+    background: linear-gradient(165deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+    border: 1px solid var(--accent-dark);
+    border-radius: 20px;
+    padding: 32px 28px;
+    max-width: 460px;
+    width: 100%;
+    text-align: center;
+    direction: rtl;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  }
+
+  .overlay-box .overlay-emoji {
+    font-size: 38px;
+    margin-bottom: 10px;
+  }
+
+  .overlay-box h3 {
+    margin: 0 0 18px;
+    font-size: 19px;
+    line-height: 1.5;
+  }
+
+  .decision-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #0f141a;
+    color: var(--text-main);
+    font-size: 15px;
+    cursor: pointer;
+    text-align: right;
+    transition: all 0.2s ease;
+  }
+
+  .decision-btn:hover {
+    border-color: var(--accent);
+    background: #111820;
+    transform: translateY(-2px);
+  }
+
+  .overlay-box .result-summary {
+    background: #0f141a;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    font-size: 14px;
+    text-align: right;
+  }
+
+  .overlay-box .result-summary .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: #111820;
+    border: 1px solid var(--accent-dark);
+    border-radius: 12px;
+    padding: 14px 24px;
+    color: var(--text-main);
+    font-size: 14px;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 70;
+    direction: rtl;
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 760px) {
+    .hub-grid {
+      grid-template-columns: 1fr;
+    }
+    .match-header {
+      gap: 14px;
+    }
+    .match-team {
+      width: 110px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .card {
+      padding: 28px 20px;
+    }
+    .two-col {
+      flex-direction: column;
+      gap: 0;
+    }
+  }
+
+  /* ===== Step: Avatar selection ===== */
+  .avatar-select-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .avatar-card {
+    background: linear-gradient(165deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .avatar-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+  }
+
+  .avatar-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: linear-gradient(165deg, #16331f 0%, var(--bg-panel-2) 100%);
+  }
+
+  .avatar-card svg {
+    width: 120px;
+    height: 140px;
+  }
+
+  .avatar-card .avatar-name {
+    margin-top: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    direction: rtl;
+  }
+
+  .avatar-actions-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .avatar-actions-row .btn-secondary {
+    flex: 1;
+  }
+
+  @media (max-width: 700px) {
+    .avatar-select-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ===== FIFA-style OVR badge ===== */
+  .ovr-badge-wrap {
+    flex-shrink: 0;
+  }
+
+  .ovr-badge {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 32% 28%, #1b222c, #0a0d11);
+    border: 3px solid var(--ovr-color, var(--gold));
+    box-shadow: 0 0 0 4px rgba(241, 196, 15, 0.12), 0 10px 25px rgba(0, 0, 0, 0.45);
+    transition: border-color 0.4s ease;
+  }
+
+  .ovr-badge.bump {
+    animation: ovrBump 0.6s ease;
+  }
+
+  @keyframes ovrBump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  .ovr-number {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--ovr-color, var(--gold));
+  }
+
+  .ovr-label {
+    font-size: 9.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+  }
+
+  /* ===== Hub: 3-column layout, avatar + mood ===== */
+  .hub-grid {
+    grid-template-columns: 0.85fr 1fr 1fr;
+  }
+
+  .hub-avatar-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .avatar-display svg {
+    width: 140px;
+    height: 160px;
+  }
+
+  .mood-badge {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 8px 18px;
+    direction: rtl;
+  }
+
+  .mood-emoji {
+    font-size: 20px;
+  }
+
+  .mood-text {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .mood-meter-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 6px;
+    background: #0f141a;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-top: 12px;
+  }
+
+  .mood-meter-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #f1c40f, var(--accent));
+    transition: width 0.5s ease;
+  }
+
+  /* ===== League table ===== */
+  .league-hint {
+    margin: 8px 0 0;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-align: center;
+    direction: rtl;
+  }
+
+  .overlay-box.wide {
+    max-width: 660px;
+    max-height: 82vh;
+    overflow-y: auto;
+  }
+
+  .league-table {
+    width: 100%;
+    border-collapse: collapse;
+    direction: rtl;
+    font-size: 13px;
+  }
+
+  .league-table th {
+    text-align: right;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11.5px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-panel);
+  }
+
+  .league-table td {
+    padding: 9px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .league-table tr.my-team {
+    background: rgba(46, 204, 113, 0.1);
+  }
+
+  .league-table tr.my-team td:first-child {
+    border-right: 3px solid var(--accent);
+  }
+
+  .league-table .rank-cell {
+    font-weight: 700;
+    width: 26px;
+    text-align: center;
+  }
+
+  .league-table .team-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+
+  .league-table .pts-cell {
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  @media (max-width: 980px) and (min-width: 761px) {
+    .hub-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .hub-avatar-card {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      justify-content: center;
+      gap: 24px;
+      text-align: right;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .hub-avatar-card {
+      flex-direction: row;
+      justify-content: center;
+      gap: 24px;
+      text-align: right;
+    }
+  }
+
+  /* ===== Premium hub modules ===== */
+  .wallet-card {
+    min-width: 190px;
+    padding: 13px 17px;
+    border: 1px solid rgba(241, 196, 15, 0.35);
+    border-radius: 15px;
+    background: linear-gradient(145deg, rgba(241, 196, 15, 0.12), rgba(15, 20, 26, 0.92));
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+    direction: rtl;
+  }
+
+  .wallet-label {
+    color: var(--text-muted);
+    font-size: 11.5px;
+  }
+
+  .wallet-balance {
+    display: block;
+    margin-top: 3px;
+    color: var(--gold);
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  .wallet-cycle {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 10.5px;
+  }
+
+  .news-panel {
+    grid-column: 1 / -1;
+  }
+
+  .news-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    direction: rtl;
+  }
+
+  .news-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: #0f141a;
+  }
+
+  .news-icon {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: rgba(46, 204, 113, 0.12);
+    font-size: 21px;
+  }
+
+  .news-body strong {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  .news-body p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+
+  .news-time {
+    display: block;
+    margin-top: 6px;
+    color: #596574;
+    font-size: 10px;
+  }
+
+  .calendar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    direction: rtl;
+  }
+
+  .calendar-round {
+    display: grid;
+    grid-template-columns: 88px 1fr 105px;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #0f141a;
+    font-size: 12.5px;
+  }
+
+  .calendar-round.current {
+    border-color: var(--accent-dark);
+    background: rgba(46, 204, 113, 0.08);
+  }
+
+  .round-number {
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  .round-date {
+    color: var(--text-muted);
+    text-align: left;
+  }
+
+  @media (max-width: 760px) {
+    .hub-top { flex-wrap: wrap; }
+    .wallet-card { width: 100%; order: 4; }
+    .news-list { grid-template-columns: 1fr; }
+    .calendar-round { grid-template-columns: 72px 1fr; }
+    .round-date { grid-column: 1 / -1; text-align: right; }
+  }
+
+  /* ===== Animated 2D decision pitch ===== */
+  .decision-pitch {
+    position: relative;
+    width: 100%;
+    height: 210px;
+    margin: 12px 0 18px;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,.72);
+    border-radius: 14px;
+    background:
+      linear-gradient(90deg, transparent 49.6%, rgba(255,255,255,.72) 49.6%, rgba(255,255,255,.72) 50.4%, transparent 50.4%),
+      repeating-linear-gradient(90deg, #187a3f 0, #187a3f 48px, #1b8847 48px, #1b8847 96px);
+    direction: ltr;
+  }
+
+  .decision-pitch::before {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 64px; height: 64px;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(255,255,255,.72);
+    border-radius: 50%;
+  }
+
+  .pitch-box {
+    position: absolute;
+    right: -2px; top: 43px;
+    width: 74px; height: 120px;
+    border: 2px solid rgba(255,255,255,.72);
+  }
+
+  .pitch-goal {
+    position: absolute;
+    right: 3px; top: 77px;
+    width: 20px; height: 54px;
+    border: 3px double #eef5ff;
+    background: repeating-linear-gradient(45deg, transparent 0 5px, rgba(255,255,255,.28) 5px 6px);
+  }
+
+  .pitch-player {
+    position: absolute;
+    width: 27px; height: 27px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    box-shadow: 0 4px 9px rgba(0,0,0,.35);
+  }
+
+  .pitch-player.you { left: 42px; top: 91px; background: #2563eb; }
+  .pitch-player.mate { left: 210px; top: 45px; background: #2563eb; }
+  .pitch-player.defender { left: 260px; top: 115px; background: #dc2626; }
+  .pitch-player.keeper { right: 25px; top: 91px; background: #f59e0b; }
+
+  .pitch-ball {
+    position: absolute;
+    left: 76px; top: 100px;
+    width: 14px; height: 14px;
+    z-index: 5;
+    border-radius: 50%;
+    border: 2px solid #111827;
+    background: #fff;
+    box-shadow: 0 3px 7px rgba(0,0,0,.5);
+    transition: left 1.15s cubic-bezier(.2,.8,.25,1), top 1.15s cubic-bezier(.2,.8,.25,1), transform 1.15s ease;
+  }
+
+  .pitch-ball.to-goal { left: calc(100% - 25px) !important; top: 99px !important; transform: rotate(620deg); }
+  .pitch-ball.to-mate { left: 62% !important; top: 55px !important; transform: rotate(430deg); }
+  .pitch-ball.to-keeper { left: calc(100% - 54px) !important; top: 100px !important; transform: rotate(430deg) scale(.82); }
+  .pitch-ball.out { left: calc(100% - 22px) !important; top: -20px !important; transform: rotate(760deg); }
+  .pitch-ball.tackle { left: 67% !important; top: 122px !important; transform: rotate(500deg); }
+
+  .pitch-result {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    background: rgba(4,10,7,.58);
+    color: #fff;
+    font-size: 24px;
+    font-weight: 900;
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+
+  .pitch-result.show { opacity: 1; }
+  .decision-options.locked { pointer-events: none; opacity: .55; }
+
+  /* Scenario-aware tactical layouts */
+  .decision-pitch[data-layout="one-on-one"] .you { left: 68%; top: 91px; }
+  .decision-pitch[data-layout="one-on-one"] .defender { left: 48%; top: 145px; opacity: .45; }
+  .decision-pitch[data-layout="one-on-one"] .mate { left: 51%; top: 43px; }
+  .decision-pitch[data-layout="one-on-one"] .pitch-ball { left: calc(68% + 30px); top: 100px; }
+
+  .decision-pitch[data-layout="wing"] .you { left: 57%; top: 150px; }
+  .decision-pitch[data-layout="wing"] .defender { left: 70%; top: 125px; }
+  .decision-pitch[data-layout="wing"] .mate { left: 78%; top: 54px; }
+  .decision-pitch[data-layout="wing"] .pitch-ball { left: calc(57% + 31px); top: 159px; }
+
+  .decision-pitch[data-layout="box-entry"] .you { left: 55%; top: 91px; }
+  .decision-pitch[data-layout="box-entry"] .defender { left: 69%; top: 91px; }
+  .decision-pitch[data-layout="box-entry"] .mate { left: 68%; top: 43px; }
+  .decision-pitch[data-layout="box-entry"] .pitch-ball { left: calc(55% + 30px); top: 100px; }
+
+  .decision-pitch[data-layout="counter"] .you { left: 40%; top: 91px; }
+  .decision-pitch[data-layout="counter"] .mate { left: 62%; top: 46px; }
+  .decision-pitch[data-layout="counter"] .defender { left: 65%; top: 124px; }
+  .decision-pitch[data-layout="counter"] .pitch-ball { left: calc(40% + 30px); top: 100px; }
+
+  .decision-pitch[data-layout="midfield"] .you { left: 42%; top: 91px; }
+  .decision-pitch[data-layout="midfield"] .mate { left: 62%; top: 48px; }
+  .decision-pitch[data-layout="midfield"] .defender { left: 51%; top: 124px; }
+  .decision-pitch[data-layout="midfield"] .pitch-ball { left: calc(42% + 30px); top: 100px; }
+
+  .decision-pitch[data-layout="defending"] .you { left: 70%; top: 91px; background: #2563eb; }
+  .decision-pitch[data-layout="defending"] .defender { left: 58%; top: 91px; background: #dc2626; }
+  .decision-pitch[data-layout="defending"] .mate { left: 76%; top: 145px; }
+  .decision-pitch[data-layout="defending"] .pitch-ball { left: calc(58% + 29px); top: 100px; }
+
+  .decision-pitch[data-layout="goalkeeper"] .you { right: 25px; left: auto; top: 91px; background: #2563eb; }
+  .decision-pitch[data-layout="goalkeeper"] .keeper { display: none; }
+  .decision-pitch[data-layout="goalkeeper"] .defender { left: 68%; top: 91px; background: #dc2626; }
+  .decision-pitch[data-layout="goalkeeper"] .mate { left: 77%; top: 145px; opacity: .55; }
+  .decision-pitch[data-layout="goalkeeper"] .pitch-ball { left: calc(68% + 30px); top: 100px; }
+
+  .decision-pitch[data-layout="set-piece"] .you { left: 53%; top: 125px; }
+  .decision-pitch[data-layout="set-piece"] .defender { left: 71%; top: 90px; }
+  .decision-pitch[data-layout="set-piece"] .mate { left: 68%; top: 44px; }
+  .decision-pitch[data-layout="set-piece"] .pitch-ball { left: calc(53% + 30px); top: 134px; }
+
+  @media (max-width: 520px) {
+    .decision-pitch { height: 175px; }
+    .pitch-player.mate { left: 150px; }
+    .pitch-player.defender { left: 195px; }
+  }
+</style>
+</head>
+<body>
+  <div class="stepper" id="stepper">
+    <div class="step active" id="stepDot1">
+      <span class="dot">1</span>
+      <span class="step-label">Profile</span>
+    </div>
+    <div class="step-line" id="stepLine1"></div>
+    <div class="step" id="stepDot2">
+      <span class="dot">2</span>
+      <span class="step-label">Avatar</span>
+    </div>
+    <div class="step-line" id="stepLine2"></div>
+    <div class="step" id="stepDot3">
+      <span class="dot">3</span>
+      <span class="step-label">Contract</span>
+    </div>
+    <div class="step-line" id="stepLine3"></div>
+    <div class="step" id="stepDot4">
+      <span class="dot">4</span>
+      <span class="step-label">Number</span>
+    </div>
+  </div>
+
+  <div class="app" id="step1Screen">
+    <div class="brand">
+      <span class="ball">⚽</span>
+      <h1>Football Career Simulator</h1>
+      <p>Build your legend from the ground up</p>
+    </div>
+
+    <div class="card">
+      <div id="welcomeForm">
+        <h2>Create Your Player</h2>
+        <p class="subtitle">Tell us about yourself to begin your journey</p>
+
+        <form id="playerForm" novalidate>
+          <div class="field">
+            <label for="fullName">Full Name</label>
+            <input type="text" id="fullName" name="fullName" placeholder="e.g. Marco Rossi" autocomplete="off" />
+            <div class="error-msg" id="fullNameError">Please enter your full name.</div>
+          </div>
+
+          <div class="two-col">
+            <div class="field">
+              <label for="country">Country</label>
+              <select id="country" name="country">
+                <option value="" disabled selected>Select country</option>
+                <option>Argentina</option>
+                <option>Belgium</option>
+                <option>Brazil</option>
+                <option>Cameroon</option>
+                <option>Croatia</option>
+                <option>Egypt</option>
+                <option>England</option>
+                <option>France</option>
+                <option>Germany</option>
+                <option>Ghana</option>
+                <option>Italy</option>
+                <option>Ivory Coast</option>
+                <option>Japan</option>
+                <option>Mexico</option>
+                <option>Morocco</option>
+                <option>Netherlands</option>
+                <option>Nigeria</option>
+                <option>Poland</option>
+                <option>Portugal</option>
+                <option>Senegal</option>
+                <option>South Korea</option>
+                <option>Spain</option>
+                <option>Sweden</option>
+                <option>United States</option>
+                <option>Uruguay</option>
+                <option>Other</option>
+              </select>
+              <div class="error-msg" id="countryError">Please select a country.</div>
+            </div>
+
+            <div class="field">
+              <label for="age">Age</label>
+              <input type="number" id="age" name="age" placeholder="16" min="15" max="45" />
+              <div class="error-msg" id="ageError">Enter an age between 15 and 45.</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="position">Position</label>
+            <select id="position" name="position">
+              <option value="" disabled selected>Select position</option>
+              <option value="שוער">שוער (Goalkeeper)</option>
+              <option value="מגן">מגן (Fullback)</option>
+              <option value="בלם">בלם (Center Back)</option>
+              <option value="קשר">קשר (Midfielder)</option>
+              <option value="כנף">כנף (Winger)</option>
+              <option value="חלוץ">חלוץ (Striker)</option>
+            </select>
+            <div class="error-msg" id="positionError">Please select a position.</div>
+          </div>
+
+          <button type="submit" class="btn-start">Start Your Career →</button>
+        </form>
+
+        <p class="footer-note">Your journey from academy prospect to world-class star begins here.</p>
+      </div>
+
+      <div class="welcome-result" id="welcomeResult">
+        <div class="check">🏆</div>
+        <h3>Welcome to the pitch!</h3>
+        <p>Your career profile has been created.</p>
+
+        <div class="summary">
+          <div class="summary-row"><span>Name</span><span id="resultName"></span></div>
+          <div class="summary-row"><span>Country</span><span id="resultCountry"></span></div>
+          <div class="summary-row"><span>Age</span><span id="resultAge"></span></div>
+          <div class="summary-row"><span>Position</span><span id="resultPosition"></span></div>
+        </div>
+
+        <button type="button" class="btn-start" id="startCareerBtn" style="margin-top:22px;">🚀 המשך ובחר דמות</button>
+        <button type="button" class="btn-start" id="editBtn" style="margin-top:12px; background: linear-gradient(135deg, #3a4452, #232a33); color: var(--text-main); box-shadow:none;">Edit Details</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app app-wide hidden" id="avatarScreen">
+    <div class="contracts-header" dir="rtl">
+      <span class="badge-emoji">🧑‍🎨</span>
+      <h2>בחר את הדמות שלך</h2>
+      <p>זוהי הדמות שתייצג אותך לאורך כל הקריירה. אפשר לרענן את המראה ולשמור על הזהות שבחרת.</p>
+    </div>
+
+    <div class="avatar-select-grid" id="avatarGrid"></div>
+
+    <div class="avatar-actions-row">
+      <button type="button" class="btn-secondary" id="refreshAvatarsBtn">🔄 רענון מראה</button>
+      <button type="button" class="btn-start" id="confirmAvatarBtn" disabled style="margin-top:0;">המשך לבחירת קבוצה →</button>
+    </div>
+  </div>
+
+  <div class="app app-wide hidden" id="step2Screen">
+    <div class="contracts-header" dir="rtl">
+      <span class="badge-emoji">📄</span>
+      <h2>הצעות חוזה מהליגה הישראלית</h2>
+      <p>שלוש קבוצות מהליגה הראשית מתעניינות בחתימתך. בחר את המועדון שבו תתחיל את הקריירה שלך.</p>
+    </div>
+
+    <div class="teams-grid" id="teamsGrid"></div>
+
+    <div class="selection-note" id="selectionNote"></div>
+  </div>
+
+  <div class="app hidden" id="step3Screen">
+    <div class="contracts-header" dir="rtl">
+      <span class="badge-emoji">👕</span>
+      <h2>בחר מספר חולצה</h2>
+      <p>בחר את המספר שילווה אותך לאורך הקריירה שלך.</p>
+    </div>
+
+    <div class="shirt-grid" id="shirtGrid"></div>
+
+    <button type="button" class="btn-start" id="confirmShirtBtn" style="margin-top:26px;" disabled>התחל קריירה! 🚀</button>
+  </div>
+
+  <div class="app app-wide hidden" id="step4Screen">
+    <div class="hub-top" dir="rtl">
+      <div class="ovr-badge-wrap">
+        <div class="ovr-badge" id="ovrBadge">
+          <span class="ovr-number" id="ovrNumber">55</span>
+          <span class="ovr-label">דירוג כללי</span>
+        </div>
+      </div>
+      <div style="flex:1; margin-right:16px;">
+        <h2>מסך הבית של הקריירה</h2>
+        <p id="hubSubtitle"></p>
+      </div>
+      <div class="logo-chip lg" id="hubTeamLogo"></div>
+      <div class="wallet-card">
+        <span class="wallet-label">💳 הכסף שלי</span>
+        <strong class="wallet-balance" id="walletBalance">₪0</strong>
+        <span class="wallet-cycle" id="walletCycle">התשלום הבא בעוד 4 משחקים</span>
+      </div>
+    </div>
+
+    <div class="hub-grid">
+      <div class="hub-card hub-avatar-card">
+        <h3>🧑 הדמות שלי</h3>
+        <div class="avatar-display" id="hubAvatarDisplay"></div>
+        <div class="mood-badge" id="hubMoodBadge">
+          <span class="mood-emoji" id="moodEmoji">😊</span>
+          <span class="mood-text" id="moodText">נהנה בקבוצה</span>
+        </div>
+        <div class="mood-meter-track"><div class="mood-meter-fill" id="moodMeterFill"></div></div>
+      </div>
+
+      <div class="hub-card">
+        <h3>👤 פרופיל שחקן</h3>
+        <div class="profile-row"><span class="p-label">שם מלא</span><span class="p-value" id="hubName"></span></div>
+        <div class="profile-row"><span class="p-label">גיל</span><span class="p-value" id="hubAge"></span></div>
+        <div class="profile-row"><span class="p-label">מדינה</span><span class="p-value" id="hubCountry"></span></div>
+        <div class="profile-row"><span class="p-label">תפקיד</span><span class="p-value" id="hubPosition"></span></div>
+        <div class="profile-row"><span class="p-label">קבוצה נוכחית</span><span class="p-value" id="hubTeam"></span></div>
+        <div class="profile-row"><span class="p-label">מספר חולצה</span><span class="p-value" id="hubShirt"></span></div>
+        <div class="profile-row"><span class="p-label">שכר שנצבר</span><span class="p-value" id="hubEarned"></span></div>
+
+        <div class="match-log" id="matchLog"></div>
+      </div>
+
+      <div class="hub-card">
+        <h3>📊 יכולות</h3>
+
+        <div class="stat-block">
+          <div class="stat-label-row"><span class="stat-name">כושר (Fitness)</span><span class="stat-value" id="hubFitnessVal"></span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill fill-fitness" id="hubFitnessBar"></div></div>
+        </div>
+
+        <div class="stat-block">
+          <div class="stat-label-row"><span class="stat-name">חדות (Sharpness)</span><span class="stat-value" id="hubSharpVal"></span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill fill-sharp" id="hubSharpBar"></div></div>
+        </div>
+
+        <div class="hub-actions">
+          <button type="button" class="btn-secondary" id="trainBtn">🏋️ אימון (Train)</button>
+          <button type="button" class="btn-secondary" id="medicalBtn">🏥 טיפול רפואי (Medical)</button>
+          <button type="button" class="btn-secondary" id="leagueTableBtn">📊 טבלת הליגה</button>
+          <button type="button" class="btn-secondary" id="seasonCalendarBtn">🗓️ לוח משחקים</button>
+          <p class="league-hint" id="leagueHint"></p>
+          <button type="button" class="btn-play-match" id="playMatchBtn">⚽ שחק משחק הבא</button>
+        </div>
+      </div>
+
+      <div class="hub-card news-panel">
+        <h3>📰 חדשות והודעות מאמן</h3>
+        <div class="news-list" id="newsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app app-wide hidden" id="transferOverlay">
+    <div class="contracts-header" dir="rtl">
+      <span class="badge-emoji">🤝</span>
+      <h2>חלון ההעברות נפתח!</h2>
+      <p>העונה הסתיימה. מועדונים עוקבים אחרי הביצועים שלך. האם תישאר או תעבור לאתגר חדש?</p>
+    </div>
+    <div class="teams-grid" id="transferGrid"></div>
+    <button type="button" class="btn-start" id="stayAtClubBtn" style="margin-top:20px; background: linear-gradient(135deg, #3a4452, #232a33); color: var(--text-main);">הישאר במועדון הנוכחי 🏠</button>
+  </div>
+
+  <div class="app app-wide hidden" id="step5Screen">
+    <div class="match-header">
+      <div class="match-team">
+        <div class="logo-chip lg" id="matchHomeLogo"></div>
+        <span class="team-label" id="matchHomeName"></span>
+      </div>
+      <div class="match-score" id="matchScore">0 - 0</div>
+      <div class="match-team">
+        <div class="logo-chip lg" id="matchAwayLogo"></div>
+        <span class="team-label" id="matchAwayName"></span>
+      </div>
+    </div>
+
+    <div class="match-timer-wrap">
+      <span>דקה </span><span class="minute-display" id="matchMinute">1</span><span> / 90</span>
+      <div class="match-progress-track"><div class="match-progress-fill" id="matchProgressFill"></div></div>
+    </div>
+
+    <div class="commentary-box" id="commentaryBox">⚽ השופט שורק לתחילת המשחק!</div>
+
+    <div class="match-stats-row">
+      <span>גולים: <strong id="liveGoals">0</strong></span>
+      <span>בישולים: <strong id="liveAssists">0</strong></span>
+      <span>דירוג רגעי: <strong id="liveRating">60</strong></span>
+    </div>
+  </div>
+
+  <!-- Decision popup (Step 5, minute 70) -->
+  <div class="overlay" id="decisionOverlay">
+    <div class="overlay-box wide">
+      <div class="overlay-emoji">🔥</div>
+      <h3 id="decisionText"></h3>
+      <div class="decision-pitch" id="decisionPitch">
+        <div class="pitch-box"></div>
+        <div class="pitch-goal"></div>
+        <div class="pitch-player you">אתה</div>
+        <div class="pitch-player mate">חבר</div>
+        <div class="pitch-player defender">יריב</div>
+        <div class="pitch-player keeper">שוער</div>
+        <div class="pitch-ball" id="pitchBall"></div>
+        <div class="pitch-result" id="pitchResult"></div>
+      </div>
+      <div class="decision-options" id="decisionOptions"></div>
+    </div>
+  </div>
+
+  <!-- Full-time result popup -->
+  <div class="overlay" id="resultOverlay">
+    <div class="overlay-box">
+      <div class="overlay-emoji" id="resultEmoji">🏁</div>
+      <h3 id="resultTitle">המשחק הסתיים!</h3>
+      <div class="result-summary" id="resultSummary"></div>
+      <button type="button" class="btn-start" id="backToHubBtn">חזרה למסך הבית →</button>
+    </div>
+  </div>
+
+  <!-- League table overlay -->
+  <div class="overlay" id="leagueOverlay">
+    <div class="overlay-box wide">
+      <div class="overlay-emoji">🏆</div>
+      <h3>טבלת ליגת העל</h3>
+      <div id="leagueTableWrap"></div>
+      <button type="button" class="btn-start" id="closeLeagueBtn" style="margin-top:18px;">סגור</button>
+    </div>
+  </div>
+
+  <!-- Season calendar overlay -->
+  <div class="overlay" id="calendarOverlay">
+    <div class="overlay-box wide">
+      <div class="overlay-emoji">🗓️</div>
+      <h3>לוח משחקי העונה</h3>
+      <div class="calendar-list" id="calendarList"></div>
+      <button type="button" class="btn-start" id="closeCalendarBtn" style="margin-top:18px;">סגור</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function () {
+      /* =========================================================
+       * Step 1: Player profile form
+       * ========================================================= */
+      const form = document.getElementById('playerForm');
+      const fullNameInput = document.getElementById('fullName');
+      const countryInput = document.getElementById('country');
+      const ageInput = document.getElementById('age');
+      const positionInput = document.getElementById('position');
+
+      const fullNameError = document.getElementById('fullNameError');
+      const countryError = document.getElementById('countryError');
+      const ageError = document.getElementById('ageError');
+      const positionError = document.getElementById('positionError');
+
+      const welcomeForm = document.getElementById('welcomeForm');
+      const welcomeResult = document.getElementById('welcomeResult');
+      const editBtn = document.getElementById('editBtn');
+      const startCareerBtn = document.getElementById('startCareerBtn');
+
+      const step1Screen = document.getElementById('step1Screen');
+      const avatarScreen = document.getElementById('avatarScreen');
+      const step2Screen = document.getElementById('step2Screen');
+
+      // English label shown alongside the Hebrew position name in the summary
+      const POSITION_LABELS = {
+        'שוער': 'Goalkeeper',
+        'מגן': 'Fullback',
+        'בלם': 'Center Back',
+        'קשר': 'Midfielder',
+        'כנף': 'Winger',
+        'חלוץ': 'Striker'
+      };
+
+      let playerProfile = null;
+
+      function setInvalid(input, errorEl, isInvalid) {
+        input.classList.toggle('invalid', isInvalid);
+        errorEl.classList.toggle('show', isInvalid);
+      }
+
+      function validate() {
+        let valid = true;
+
+        const nameVal = fullNameInput.value.trim();
+        if (nameVal.length < 2) {
+          setInvalid(fullNameInput, fullNameError, true);
+          valid = false;
+        } else {
+          setInvalid(fullNameInput, fullNameError, false);
+        }
+
+        const countryVal = countryInput.value;
+        if (!countryVal) {
+          setInvalid(countryInput, countryError, true);
+          valid = false;
+        } else {
+          setInvalid(countryInput, countryError, false);
+        }
+
+        const ageVal = parseInt(ageInput.value, 10);
+        if (isNaN(ageVal) || ageVal < 15 || ageVal > 45) {
+          setInvalid(ageInput, ageError, true);
+          valid = false;
+        } else {
+          setInvalid(ageInput, ageError, false);
+        }
+
+        const positionVal = positionInput.value;
+        if (!positionVal) {
+          setInvalid(positionInput, positionError, true);
+          valid = false;
+        } else {
+          setInvalid(positionInput, positionError, false);
+        }
+
+        return valid;
+      }
+
+      // Clear invalid state as user types/selects
+      [fullNameInput, countryInput, ageInput, positionInput].forEach((el) => {
+        el.addEventListener('input', () => {
+          el.classList.remove('invalid');
+        });
+      });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!validate()) return;
+
+        playerProfile = {
+          fullName: fullNameInput.value.trim(),
+          country: countryInput.value,
+          age: parseInt(ageInput.value, 10),
+          position: positionInput.value
+        };
+
+        // Persist for later steps of the career simulator
+        try {
+          localStorage.setItem('playerProfile', JSON.stringify(playerProfile));
+        } catch (err) {
+          /* localStorage unavailable - continue without persistence */
+        }
+
+        document.getElementById('resultName').textContent = playerProfile.fullName;
+        document.getElementById('resultCountry').textContent = playerProfile.country;
+        document.getElementById('resultAge').textContent = playerProfile.age;
+        document.getElementById('resultPosition').textContent =
+          playerProfile.position + ' (' + POSITION_LABELS[playerProfile.position] + ')';
+
+        welcomeForm.classList.add('hidden');
+        welcomeResult.classList.add('show');
+      });
+
+      editBtn.addEventListener('click', function () {
+        welcomeResult.classList.remove('show');
+        welcomeForm.classList.remove('hidden');
+      });
+
+      /* =========================================================
+       * Step navigation / stepper indicator
+       * ========================================================= */
+      function goToStep(stepNumber) {
+        for (let i = 1; i <= 4; i++) {
+          const dot = document.getElementById('stepDot' + i);
+          dot.classList.remove('active', 'done');
+          if (i < stepNumber) dot.classList.add('done');
+          if (i === stepNumber) dot.classList.add('active');
+        }
+        for (let i = 1; i <= 3; i++) {
+          document.getElementById('stepLine' + i).classList.toggle('done', stepNumber > i);
+        }
+      }
+
+      /* =========================================================
+       * Step 2: Israeli Premier League (Ligat Ha'Al) team contracts
+       * Real club crests served from Wikipedia/Wikimedia Commons.
+       * ========================================================= */
+      const TEAM_POOL = [
+        // Elite / big clubs — קבוצת ענק: high salary, low starting minutes
+        { name: 'מכבי תל אביב', tier: 'big', color: '#f6c343', logo: 'https://upload.wikimedia.org/wikipedia/en/c/c3/Maccabi_Tel_Aviv_F.C._logo.svg' },
+        { name: 'מכבי חיפה', tier: 'big', color: '#1a8f4c', logo: 'https://upload.wikimedia.org/wikipedia/en/b/b6/Maccabi_Haifa_F.C._logo.svg' },
+        { name: 'הפועל באר שבע', tier: 'big', color: '#d0021b', logo: 'https://upload.wikimedia.org/wikipedia/en/e/e9/Hapoel_Be%27er_Sheva.png' },
+        // Medium clubs — אמצע הטבלה: decent salary, balanced rotation minutes
+        { name: 'מכבי נתניה', tier: 'medium', color: '#f39c12', logo: 'https://upload.wikimedia.org/wikipedia/en/1/12/Maccabi_Netanya_F.C._logo.svg' },
+        { name: 'בית"ר ירושלים', tier: 'medium', color: '#f1c40f', logo: 'https://upload.wikimedia.org/wikipedia/en/b/bd/Beitar_Jerusalem_F.C._logo.svg' },
+        { name: 'הפועל תל אביב', tier: 'medium', color: '#e74c3c', logo: 'https://upload.wikimedia.org/wikipedia/en/5/55/Hapoel_Tel_Aviv_F.C._logo.svg' },
+        // Small clubs — קבוצה קטנה: low salary, maximum guaranteed minutes
+        { name: 'בני סכנין', tier: 'small', color: '#e67e22', logo: 'https://upload.wikimedia.org/wikipedia/en/6/63/Bnei_Sakhnin_FC.svg' },
+        { name: 'מכבי בני ריינה', tier: 'small', color: '#16a34a', logo: 'https://upload.wikimedia.org/wikipedia/he/b/b2/MaccabiBneiReinenew.png' },
+        { name: 'הפועל חדרה', tier: 'small', color: '#c0392b', logo: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Hapoel_hadera.svg' }
+      ];
+
+      // Extra clubs that only appear in the full league table / as match
+      // opponents (not offered as contracts) — rounds out Ligat Ha'Al.
+      const EXTRA_LEAGUE_TEAMS = [
+        { name: 'הפועל חיפה', tier: 'medium', color: '#7f1d1d', logo: 'https://upload.wikimedia.org/wikipedia/en/5/5c/Hapoel_Haifa_F.C.svg' },
+        { name: 'מ.ס. אשדוד', tier: 'small', color: '#2563eb', logo: 'https://upload.wikimedia.org/wikipedia/en/7/72/FC_Ashdod.svg' },
+        { name: 'הפועל פתח תקווה', tier: 'small', color: '#b91c1c', logo: 'https://upload.wikimedia.org/wikipedia/en/1/1f/Hapoelpt.svg' },
+        { name: 'עירוני קריית שמונה', tier: 'medium', color: '#dc2626', logo: 'https://upload.wikimedia.org/wikipedia/en/a/a0/Hapoel_Ironi_Kiryat_Shmona_F.C._logo.svg' }
+      ];
+
+      const LEAGUE_TEAMS = TEAM_POOL.concat(EXTRA_LEAGUE_TEAMS);
+
+      // Prestige tiers drive the trade-off: bigger clubs pay more but offer
+      // less playing time; smaller clubs pay less but guarantee minutes.
+      const TIER_CONFIG = {
+        big: {
+          label: 'קבוצת ענק',
+          salaryRange: [75000, 130000],
+          roles: ['שחקן ספסל', 'שחקן מאגר (רוטציה)'],
+          minutesRange: [10, 30]
+        },
+        medium: {
+          label: 'אמצע הטבלה',
+          salaryRange: [30000, 55000],
+          roles: ['מתחרה על מקום בהרכב', 'שחקן רוטציה בכיר'],
+          minutesRange: [45, 65]
+        },
+        small: {
+          label: 'קבוצה קטנה',
+          salaryRange: [8000, 20000],
+          roles: ['שחקן הרכב קבוע', 'כוכב הקבוצה המתוכנן'],
+          minutesRange: [75, 90]
+        }
+      };
+
+      function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function shuffle(arr) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function pickRandomTeams(n) {
+        return shuffle(TEAM_POOL).slice(0, n);
+      }
+
+      function formatShekel(amount) {
+        return '₪' + amount.toLocaleString('he-IL');
+      }
+
+      function generateContract(team) {
+        const cfg = TIER_CONFIG[team.tier];
+        const rawSalary = randomInt(cfg.salaryRange[0], cfg.salaryRange[1]);
+        const salary = Math.round(rawSalary / 500) * 500; // round to a neat figure
+        const role = cfg.roles[randomInt(0, cfg.roles.length - 1)];
+        const minutes = randomInt(cfg.minutesRange[0], cfg.minutesRange[1]);
+        return {
+          tier: team.tier,
+          tierLabel: cfg.label,
+          salary: salary,
+          role: role,
+          minutes: minutes
+        };
+      }
+
+      function getCrestInitials(name) {
+        return name.replace(/["'.]/g, '').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('');
+      }
+
+      // Builds a logo badge with a graceful fallback to initials if the
+      // Wikipedia image fails to load (e.g. offline use).
+      function crestChipHTML(team, sizeClass) {
+        const initials = getCrestInitials(team.name);
+        return (
+          '<div class="logo-chip ' + (sizeClass || '') + '">' +
+          '<img class="crest-img" src="' + team.logo + '" alt="' + team.name + '" ' +
+          'onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';" />' +
+          '<span class="crest-fallback" style="background:' + team.color + '">' + initials + '</span>' +
+          '</div>'
+        );
+      }
+
+      function renderTeamCards(offers) {
+        const grid = document.getElementById('teamsGrid');
+        grid.innerHTML = '';
+
+        offers.forEach((offer, index) => {
+          const card = document.createElement('div');
+          card.className = 'team-card';
+          card.style.setProperty('--team-color', offer.team.color);
+          card.dataset.index = index;
+
+          const minutesHighlight = offer.contract.minutes >= 70
+            ? 'highlight-good'
+            : (offer.contract.minutes <= 30 ? 'highlight-bad' : '');
+
+          card.innerHTML = `
+            <div class="team-card-top">
+              <span class="tier-badge" data-tier="${offer.contract.tier}">${offer.contract.tierLabel}</span>
+              ${crestChipHTML(offer.team, 'lg')}
+            </div>
+            <h3 class="team-name">${offer.team.name}</h3>
+            <div class="contract-list" dir="rtl">
+              <div class="contract-row">
+                <span class="c-label">🏟️ הקבוצה</span>
+                <span class="c-value">${offer.team.name}</span>
+              </div>
+              <div class="contract-row">
+                <span class="c-label">💰 שכר שבועי</span>
+                <span class="c-value">${formatShekel(offer.contract.salary)}</span>
+              </div>
+              <div class="contract-row">
+                <span class="c-label">📋 מעמד בסגל</span>
+                <span class="c-value">${offer.contract.role}</span>
+              </div>
+              <div class="contract-row">
+                <span class="c-label">⏱️ דקות משחק מובטחות</span>
+                <span class="c-value ${minutesHighlight}">${offer.contract.minutes} דקות</span>
+              </div>
+            </div>
+            <button type="button" class="sign-btn" data-index="${index}">✍️ חתום עם קבוצה זו</button>
+          `;
+
+          grid.appendChild(card);
+        });
+
+        grid.querySelectorAll('.sign-btn').forEach((btn) => {
+          btn.addEventListener('click', function () {
+            const idx = parseInt(this.dataset.index, 10);
+            onTeamSelected(idx, offers);
+          });
+        });
+      }
+
+      function onTeamSelected(idx, offers) {
+        const chosen = offers[idx];
+        careerState.team = chosen.team;
+        careerState.contract = chosen.contract;
+
+        // Visually mark the chosen card and lock the others
+        document.querySelectorAll('.team-card').forEach((card, i) => {
+          const btn = card.querySelector('.sign-btn');
+          if (i === idx) {
+            card.classList.add('selected');
+            btn.classList.add('signed');
+            btn.textContent = '✓ חתמת עם קבוצה זו';
+          } else {
+            card.classList.remove('selected');
+          }
+          btn.disabled = true;
+        });
+
+        try {
+          localStorage.setItem('chosenTeamOffer', JSON.stringify(chosen));
+        } catch (err) {
+          /* localStorage unavailable - continue without persistence */
+        }
+
+        const note = document.getElementById('selectionNote');
+        note.innerHTML =
+          '🎉 מזל טוב! חתמת בהצלחה בקבוצת <strong>' + chosen.team.name + '</strong> ' +
+          'תמורת שכר שבועי של <strong>' + formatShekel(chosen.contract.salary) + '</strong>, ' +
+          'כ-<strong>' + chosen.contract.role + '</strong> עם <strong>' + chosen.contract.minutes + ' דקות</strong> משחק מובטחות. ' +
+          '<br/><br/>כעת נבחר את מספר החולצה שלך! ⚽' +
+          '<br/><button type="button" class="btn-start" id="goToShirtBtn" style="margin-top:14px;">בחר מספר חולצה →</button>';
+        note.classList.add('show');
+
+        document.getElementById('goToShirtBtn').addEventListener('click', function () {
+          step2Screen.classList.add('hidden');
+          renderShirtScreen();
+          step3Screen.classList.remove('hidden');
+          goToStep(4);
+        });
+      }
+
+      // "Start career" on the welcome summary now leads to avatar selection first.
+      startCareerBtn.addEventListener('click', function () {
+        step1Screen.classList.add('hidden');
+        renderAvatarScreen();
+        avatarScreen.classList.remove('hidden');
+        goToStep(2);
+      });
+
+      /* =========================================================
+       * Shared career state (persists across steps 3-5)
+       * ========================================================= */
+      const careerState = {
+        team: null,
+        contract: null,
+        shirtNumber: null,
+        avatar: null,
+        overall: 55,
+        fitness: 100,
+        sharpness: 50,
+        mood: 60,
+        totalEarned: 0,
+        stats: { goals: 0, assists: 0, matches: 0 },
+        matchLog: [],
+        notifications: [],
+        matchesSinceSalary: 0,
+        currentRound: 0,
+        seasonCalendar: null,
+        leagueTable: null,
+        injuryRounds: 0,
+        developmentPoints: 0
+      };
+
+      function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => toast.classList.remove('show'), 3200);
+      }
+
+      /* =========================================================
+       * Avatar selection: 3 fixed AI-style avatars (vector-drawn,
+       * fully self-contained — no external image dependency).
+       * ========================================================= */
+      const AVATAR_BASES = [
+        { skin: '#c88a55', hair: '#4a2c17', hairStyle: 'short' },  // brown hair, tanned skin
+        { skin: '#f1c9a6', hair: '#161616', hairStyle: 'short' },  // white skin, black hair
+        { skin: '#6b4226', hair: '#161616', hairStyle: 'curly' }   // dark skin, curly hair
+      ];
+      const JERSEY_COLORS = ['#2ecc71', '#3498db', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c', '#e67e22'];
+      const EYE_COLORS = ['#3a2412', '#1f4e79', '#2d5a27', '#4a4a4a', '#6b3fa0'];
+
+      function randomizeCosmetic() {
+        return {
+          jersey: JERSEY_COLORS[randomInt(0, JERSEY_COLORS.length - 1)],
+          eye: EYE_COLORS[randomInt(0, EYE_COLORS.length - 1)]
+        };
+      }
+
+      let avatarStates = AVATAR_BASES.map((base) => Object.assign({ base: base }, randomizeCosmetic()));
+      let selectedAvatarIndex = null;
+
+      // Builds a stylized vector avatar. `mood` (0-100) controls the mouth
+      // curvature so the face visually reflects the player's happiness.
+      function buildAvatarSVG(avState, mood, shirtNumber) {
+        const base = avState.base;
+        const skin = base.skin, hair = base.hair, hairStyle = base.hairStyle;
+        const jersey = avState.jersey, eye = avState.eye;
+        const m = (typeof mood === 'number') ? mood : 60;
+
+        const mouth = m >= 70
+          ? '<path d="M66 100 Q80 112 94 100" stroke="#3a2412" stroke-width="3" fill="none" stroke-linecap="round"/>'
+          : (m >= 40
+            ? '<path d="M68 102 L92 102" stroke="#3a2412" stroke-width="3" fill="none" stroke-linecap="round"/>'
+            : '<path d="M66 108 Q80 97 94 108" stroke="#3a2412" stroke-width="3" fill="none" stroke-linecap="round"/>');
+
+        let hairMarkup;
+        if (hairStyle === 'curly') {
+          const pts = [[-30, -38], [-12, -46], [6, -48], [24, -42], [36, -28], [-38, -18], [38, -14], [-40, 2], [40, 6]];
+          hairMarkup = pts.map((p) => '<circle cx="' + (80 + p[0]) + '" cy="' + (78 + p[1]) + '" r="12" fill="' + hair + '" />').join('');
+        } else {
+          hairMarkup = '<ellipse cx="80" cy="54" rx="38" ry="28" fill="' + hair + '" />';
+        }
+
+        const numberTag = shirtNumber
+          ? '<text x="80" y="156" text-anchor="middle" font-size="16" font-weight="800" fill="#ffffff" opacity="0.9" font-family="Arial, sans-serif">' + shirtNumber + '</text>'
+          : '';
+
+        return (
+          '<svg viewBox="0 0 160 180" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M30 168 Q80 120 130 168 L130 180 L30 180 Z" fill="' + jersey + '" />' +
+            '<path d="M70 124 L80 136 L90 124 Z" fill="#ffffff" opacity="0.85" />' +
+            numberTag +
+            '<circle cx="43" cy="82" r="9" fill="' + skin + '" />' +
+            '<circle cx="117" cy="82" r="9" fill="' + skin + '" />' +
+            hairMarkup +
+            '<circle cx="80" cy="78" r="34" fill="' + skin + '" />' +
+            '<rect x="58" y="66" width="14" height="4" rx="2" fill="' + hair + '" />' +
+            '<rect x="88" y="66" width="14" height="4" rx="2" fill="' + hair + '" />' +
+            '<ellipse cx="65" cy="78" rx="7" ry="5" fill="#ffffff" />' +
+            '<ellipse cx="95" cy="78" rx="7" ry="5" fill="#ffffff" />' +
+            '<circle cx="66" cy="78" r="3" fill="' + eye + '" />' +
+            '<circle cx="94" cy="78" r="3" fill="' + eye + '" />' +
+            '<path d="M80 80 L77 92 L83 92 Z" fill="none" stroke="#5a3a24" stroke-width="2" stroke-linejoin="round" />' +
+            mouth +
+          '</svg>'
+        );
+      }
+
+      function renderAvatarScreen() {
+        const grid = document.getElementById('avatarGrid');
+        grid.innerHTML = '';
+
+        avatarStates.forEach((state, index) => {
+          const card = document.createElement('div');
+          card.className = 'avatar-card' + (selectedAvatarIndex === index ? ' selected' : '');
+          card.dataset.index = index;
+          card.innerHTML = buildAvatarSVG(state, 65) + '<div class="avatar-name">דמות ' + (index + 1) + '</div>';
+          card.addEventListener('click', function () {
+            selectedAvatarIndex = index;
+            document.querySelectorAll('.avatar-card').forEach((c) => c.classList.remove('selected'));
+            card.classList.add('selected');
+            document.getElementById('confirmAvatarBtn').disabled = false;
+          });
+          grid.appendChild(card);
+        });
+      }
+
+      document.getElementById('refreshAvatarsBtn').addEventListener('click', function () {
+        // Re-roll clothing/eye-color cosmetics only — ethnicities stay fixed.
+        avatarStates = avatarStates.map((s) => Object.assign({ base: s.base }, randomizeCosmetic()));
+        renderAvatarScreen();
+        showToast('🔄 המראה עודכן!');
+      });
+
+      document.getElementById('confirmAvatarBtn').addEventListener('click', function () {
+        if (selectedAvatarIndex === null) return;
+        careerState.avatar = avatarStates[selectedAvatarIndex];
+
+        const teams = pickRandomTeams(3);
+        const offers = teams.map((team) => ({ team: team, contract: generateContract(team) }));
+
+        try {
+          localStorage.setItem('teamOffers', JSON.stringify(offers));
+        } catch (err) {
+          /* localStorage unavailable - continue without persistence */
+        }
+
+        renderTeamCards(offers);
+
+        avatarScreen.classList.add('hidden');
+        step2Screen.classList.remove('hidden');
+        goToStep(3);
+      });
+
+      /* =========================================================
+       * Step 3: Shirt number selection
+       * ========================================================= */
+      const step3Screen = document.getElementById('step3Screen');
+      const step4Screen = document.getElementById('step4Screen');
+      const step5Screen = document.getElementById('step5Screen');
+      const confirmShirtBtn = document.getElementById('confirmShirtBtn');
+
+      let SHIRT_NUMBERS = [];
+      
+      function generateRandomShirtNumbers() {
+        const numbers = new Set();
+        while (numbers.size < 5) {
+          const num = Math.floor(Math.random() * 99) + 1;
+          numbers.add(num);
+        }
+        return Array.from(numbers);
+      }
+      
+      SHIRT_NUMBERS = generateRandomShirtNumbers();
+      let selectedShirt = null;
+
+      function renderShirtScreen() {
+        selectedShirt = null;
+        confirmShirtBtn.disabled = true;
+        const grid = document.getElementById('shirtGrid');
+        grid.innerHTML = '';
+
+        // Generate new random numbers each time the screen is rendered
+        SHIRT_NUMBERS = generateRandomShirtNumbers();
+
+        SHIRT_NUMBERS.forEach((num) => {
+          const card = document.createElement('div');
+          card.className = 'shirt-card';
+          card.dataset.num = num;
+          card.innerHTML = '<div class="shirt-icon">👕</div><div class="num">' + num + '</div>';
+          card.addEventListener('click', function () {
+            selectedShirt = num;
+            document.querySelectorAll('.shirt-card').forEach((c) => c.classList.remove('selected'));
+            card.classList.add('selected');
+            confirmShirtBtn.disabled = false;
+          });
+          grid.appendChild(card);
+        });
+      }
+
+      confirmShirtBtn.addEventListener('click', function () {
+        if (!selectedShirt) return;
+        careerState.shirtNumber = selectedShirt;
+
+        try {
+          localStorage.setItem('careerState', JSON.stringify(careerState));
+        } catch (err) {
+          /* localStorage unavailable - continue without persistence */
+        }
+
+        if (!careerState.leagueTable) {
+          careerState.leagueTable = generateLeagueTable();
+        }
+        if (!careerState.seasonCalendar) {
+          careerState.seasonCalendar = generateSeasonCalendar();
+        }
+        if (careerState.notifications.length === 0) {
+          addNotification('club', 'ברוכים הבאים למועדון', 'המאמן: "שמחים שהצטרפת. העבודה הקשה מתחילה עכשיו!"');
+        }
+
+        step3Screen.classList.add('hidden');
+        renderHub();
+        step4Screen.classList.remove('hidden');
+
+        // Onboarding is complete — remove the stepper so the Hub feels clean.
+        document.getElementById('stepper').style.display = 'none';
+      });
+
+      function generateLeagueTable() {
+        return LEAGUE_TEAMS.map((team) => ({
+          team: team,
+          played: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          points: 0
+        }));
+      }
+
+      function generateSeasonCalendar() {
+        const opponents = shuffle(LEAGUE_TEAMS.filter((team) => team.name !== careerState.team.name));
+        const startDate = new Date(2026, 7, 22);
+        return opponents.concat(opponents.slice().reverse()).map((opponent, index) => {
+          const date = new Date(startDate);
+          date.setDate(startDate.getDate() + (index * 7));
+          return {
+            round: index + 1,
+            opponent: opponent,
+            home: index % 2 === 0,
+            date: date.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          };
+        });
+      }
+
+      function simulateOtherLeagueMatches(excludedTeamA, excludedTeamB) {
+        const prestigeStrength = { big: 82, medium: 70, small: 60 };
+        const available = shuffle(careerState.leagueTable.filter((row) =>
+          row.team.name !== excludedTeamA && row.team.name !== excludedTeamB
+        ));
+
+        for (let i = 0; i + 1 < available.length; i += 2) {
+          const home = available[i];
+          const away = available[i + 1];
+          const homePower = prestigeStrength[home.team.tier] + randomInt(-12, 12) + 4;
+          const awayPower = prestigeStrength[away.team.tier] + randomInt(-12, 12);
+          home.played++; away.played++;
+
+          if (Math.abs(homePower - awayPower) <= 5) {
+            home.draws++; away.draws++; home.points++; away.points++;
+          } else if (homePower > awayPower) {
+            home.wins++; home.points += 3; away.losses++;
+          } else {
+            away.wins++; away.points += 3; home.losses++;
+          }
+        }
+      }
+
+      function addNotification(type, title, message) {
+        const icons = { manager: '🧑‍💼', news: '📰', finance: '💳', club: '🏟️' };
+        careerState.notifications.unshift({
+          type: type,
+          icon: icons[type] || '🔔',
+          title: title,
+          message: message,
+          time: 'כעת'
+        });
+        // News expiration: keep only the 4 most recent items
+        careerState.notifications = careerState.notifications.slice(0, 4);
+      }
+
+      function renderNotifications() {
+        const list = document.getElementById('newsList');
+        if (careerState.notifications.length === 0) {
+          list.innerHTML = '<div class="news-item"><div class="news-icon">🔔</div><div class="news-body"><strong>אין הודעות חדשות</strong><p>עדכונים מהמאמן ומהתקשורת יופיעו כאן.</p></div></div>';
+          return;
+        }
+        list.innerHTML = careerState.notifications.map((item) =>
+          '<article class="news-item"><div class="news-icon">' + item.icon + '</div>' +
+          '<div class="news-body"><strong>' + item.title + '</strong><p>' + item.message + '</p>' +
+          '<span class="news-time">' + item.time + '</span></div></article>'
+        ).join('');
+      }
+
+      function renderLeagueOverlay() {
+        const sorted = careerState.leagueTable.slice().sort((a, b) =>
+          (b.points - a.points) || ((b.wins - b.losses) - (a.wins - a.losses))
+        );
+        document.getElementById('leagueTableWrap').innerHTML =
+          '<table class="league-table"><thead><tr><th>#</th><th>קבוצה</th><th>מש׳</th><th>נ׳</th><th>ת׳</th><th>ה׳</th><th>נק׳</th></tr></thead><tbody>' +
+          sorted.map((row, index) =>
+            '<tr class="' + (row.team.name === careerState.team.name ? 'my-team' : '') + '">' +
+            '<td class="rank-cell">' + (index + 1) + '</td><td><div class="team-cell">' + crestChipHTML(row.team, 'sm') + '<span>' + row.team.name + '</span></div></td>' +
+            '<td>' + row.played + '</td><td>' + row.wins + '</td><td>' + row.draws + '</td><td>' + row.losses + '</td><td class="pts-cell">' + row.points + '</td></tr>'
+          ).join('') + '</tbody></table>';
+      }
+
+      function renderCalendarOverlay() {
+        document.getElementById('calendarList').innerHTML = careerState.seasonCalendar.map((fixture, index) =>
+          '<div class="calendar-round ' + (index === careerState.currentRound ? 'current' : '') + '">' +
+          '<span class="round-number">מחזור ' + fixture.round + '</span>' +
+          '<span>' + (fixture.home ? careerState.team.name + ' נגד ' + fixture.opponent.name : fixture.opponent.name + ' נגד ' + careerState.team.name) + '</span>' +
+          '<span class="round-date">' + fixture.date + '</span></div>'
+        ).join('');
+      }
+
+      /* =========================================================
+       * Step 5: Live Match Engine
+       * ========================================================= */
+      function getOvrTierColor(ovr) {
+        if (ovr >= 85) return '#8e44ad';
+        if (ovr >= 75) return '#f1c40f';
+        if (ovr >= 65) return '#c0c0c0';
+        return '#a9743c';
+      }
+
+      function getMoodInfo(mood) {
+        if (mood >= 70) return { emoji: '😊', text: 'נהנה בקבוצה' };
+        if (mood >= 40) return { emoji: '😐', text: 'יציב מבחינה נפשית' };
+        return { emoji: '😠', text: 'מתוסכל מהמעמד' };
+      }
+
+      function renderHub() {
+        const playMatchBtn = document.getElementById('playMatchBtn');
+        const medicalBtn = document.getElementById('medicalBtn');
+        
+        if (careerState.injuryRounds > 0) {
+          playMatchBtn.disabled = false; // Enabled to allow simulation
+          playMatchBtn.textContent = '🏥 דלג וקדם החלמה (פצוע)';
+          medicalBtn.disabled = false;
+          medicalBtn.style.display = 'block';
+        } else {
+          playMatchBtn.disabled = false;
+          playMatchBtn.textContent = '⚽ שחק משחק הבא';
+          medicalBtn.disabled = true;
+          medicalBtn.title = 'אינך פצוע כרגע';
+        }
+
+        const logoHost = document.getElementById('hubTeamLogo');
+        logoHost.className = 'logo-chip lg';
+        logoHost.innerHTML =
+          '<img class="crest-img" src="' + careerState.team.logo + '" alt="' + careerState.team.name + '" ' +
+          'onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';" />' +
+          '<span class="crest-fallback" style="background:' + careerState.team.color + '">' + getCrestInitials(careerState.team.name) + '</span>';
+
+        document.getElementById('hubSubtitle').textContent =
+          playerProfile.position + ' • ' + careerState.team.name + ' • #' + careerState.shirtNumber;
+
+        // FIFA-style OVR badge
+        const ovrBadge = document.getElementById('ovrBadge');
+        ovrBadge.style.setProperty('--ovr-color', getOvrTierColor(careerState.overall));
+        document.getElementById('ovrNumber').textContent = careerState.overall;
+
+        // Avatar + mood
+        document.getElementById('hubAvatarDisplay').innerHTML =
+          buildAvatarSVG(careerState.avatar, careerState.mood, careerState.shirtNumber);
+        const moodInfo = getMoodInfo(careerState.mood);
+        document.getElementById('moodEmoji').textContent = moodInfo.emoji;
+        document.getElementById('moodText').textContent = moodInfo.text;
+        document.getElementById('moodMeterFill').style.width = careerState.mood + '%';
+
+        document.getElementById('hubName').textContent = playerProfile.fullName;
+        document.getElementById('hubAge').textContent = playerProfile.age;
+        document.getElementById('hubCountry').textContent = playerProfile.country;
+        document.getElementById('hubPosition').textContent = playerProfile.position + ' (' + POSITION_LABELS[playerProfile.position] + ')';
+        document.getElementById('hubTeam').innerHTML = crestChipHTML(careerState.team, 'sm') + '<span>' + careerState.team.name + '</span>';
+        document.getElementById('hubTeam').style.gap = '8px';
+        document.getElementById('hubShirt').textContent = '#' + careerState.shirtNumber;
+        document.getElementById('hubEarned').textContent = formatShekel(careerState.totalEarned);
+        document.getElementById('walletBalance').textContent = formatShekel(careerState.totalEarned);
+        document.getElementById('walletCycle').textContent = 'התשלום הבא בעוד ' + (4 - careerState.matchesSinceSalary) + ' משחקים';
+
+        document.getElementById('hubFitnessVal').textContent = careerState.fitness + '%';
+        document.getElementById('hubFitnessBar').style.width = careerState.fitness + '%';
+        document.getElementById('hubSharpVal').textContent = careerState.sharpness + '%';
+        document.getElementById('hubSharpBar').style.width = careerState.sharpness + '%';
+
+        const logEl = document.getElementById('matchLog');
+        if (careerState.matchLog.length === 0) {
+          logEl.innerHTML = '';
+        } else {
+          logEl.innerHTML = '<div class="profile-row" style="border-bottom:none;"><span class="p-label">📜 משחקים אחרונים</span><span></span></div>' +
+            careerState.matchLog.slice(-5).reverse().map((l) => '<div class="match-log-item">' + l + '</div>').join('');
+        }
+
+        const hint = document.getElementById('leagueHint');
+        if (careerState.leagueTable) {
+          const sorted = careerState.leagueTable.slice().sort((a, b) => b.points - a.points);
+          const rank = sorted.findIndex((r) => r.team.name === careerState.team.name) + 1;
+          hint.textContent = 'מיקום נוכחי בטבלה: #' + rank + ' מתוך ' + sorted.length;
+        }
+        renderNotifications();
+      }
+
+      const trainBtn = document.getElementById('trainBtn');
+      trainBtn.addEventListener('click', function () {
+        if (trainBtn.disabled) return;
+        trainBtn.disabled = true;
+        const originalText = trainBtn.textContent;
+        trainBtn.innerHTML = 'מתאמן...<span class="spinner"></span>';
+
+        setTimeout(() => {
+          careerState.sharpness = clamp(careerState.sharpness + 5, 0, 100);
+          careerState.fitness = clamp(careerState.fitness - 5, 0, 100);
+          careerState.trainingSessions = (careerState.trainingSessions || 0) + 1;
+          careerState.developmentPoints = (careerState.developmentPoints || 0) + 1;
+          if (careerState.developmentPoints >= 6) {
+            careerState.overall = clamp(careerState.overall + 1, 1, 99);
+            careerState.developmentPoints -= 6;
+            document.getElementById('ovrBadge').classList.add('bump');
+            setTimeout(() => document.getElementById('ovrBadge').classList.remove('bump'), 700);
+          }
+          addNotification('manager', 'הודעת המאמן', 'המאמן: "אני מרוצה מאוד מהמחויבות שלך באימונים!"');
+          renderHub();
+          trainBtn.textContent = originalText;
+          trainBtn.disabled = false;
+          showToast('🏋️ האימון הסתיים! חדות +5%, כושר -5%');
+        }, 1300);
+      });
+
+      const medicalBtn = document.getElementById('medicalBtn');
+      medicalBtn.addEventListener('click', function () {
+        if (medicalBtn.disabled) return;
+        medicalBtn.disabled = true;
+        const originalText = medicalBtn.textContent;
+        medicalBtn.innerHTML = 'בטיפול...<span class="spinner"></span>';
+
+        setTimeout(() => {
+          careerState.fitness = clamp(careerState.fitness + 10, 0, 100);
+          careerState.sharpness = clamp(careerState.sharpness - 8, 0, 100);
+          if (careerState.injuryRounds > 0) {
+            careerState.injuryRounds = Math.max(0, careerState.injuryRounds - 1);
+            if (careerState.injuryRounds === 0) {
+              addNotification('manager', 'החלמה מפציעה', 'הצוות הרפואי: "אתה כשיר לחזור למגרשים!"');
+            }
+          }
+          renderHub();
+          medicalBtn.textContent = originalText;
+          medicalBtn.disabled = false;
+          showToast('🏥 הטיפול הסתיים! כושר +10%, חדות -8%');
+        }, 1300);
+      });
+
+      document.getElementById('leagueTableBtn').addEventListener('click', function () {
+        renderLeagueOverlay();
+        document.getElementById('leagueOverlay').classList.add('show');
+      });
+      document.getElementById('closeLeagueBtn').addEventListener('click', function () {
+        document.getElementById('leagueOverlay').classList.remove('show');
+      });
+      document.getElementById('seasonCalendarBtn').addEventListener('click', function () {
+        renderCalendarOverlay();
+        document.getElementById('calendarOverlay').classList.add('show');
+      });
+      document.getElementById('closeCalendarBtn').addEventListener('click', function () {
+        document.getElementById('calendarOverlay').classList.remove('show');
+      });
+
+      /* =========================================================
+       * Step 5: Live Match Engine
+       * ========================================================= */
+      const COMMENTARY_POOL = [
+        'בעיטה חופשית ליד קו הרחבה',
+        'החמצה גדולה של החלוץ היריב',
+        'פאול קשה באמצע המגרש',
+        'הקהל שואג, אווירה חמה באצטדיון',
+        'כדור מצוין נחסם על ידי ההגנה',
+        'קרן ליריבה, אין סכנה מיידית',
+        'מהלך יפה באגף, אך בלי המשך',
+        'כרטיס צהוב לשחקן יריב על עבירה',
+        'מסירה מדויקת פורצת קווים',
+        'השוער מוציא בבעיטת עונשין מצוינת',
+        'החלפה טקטית אצל הקבוצה היריבה',
+        'לחץ גבוה מתחיל להכביד על ההגנה'
+      ];
+
+      // Diverse position-specific scenarios. A random unused scenario is selected
+      // at every checkpoint, so decisions do not repeat during a match.
+      const DECISION_SCENARIOS = {
+        attack: [
+          { text: 'אתה פורץ בין הבלמים ונשאר מול השוער. מה תעשה?', options: [
+            { label: '⚽ בעיטה שטוחה לפינה הרחוקה', type: 'shoot', successChance: .58 },
+            { label: '🤝 מסירת רוחב לשחקן שמצטרף', type: 'assistPass', successChance: .62 }] },
+          { text: 'המגן פותח לך נתיב באגף. כיצד תמשיך?', options: [
+            { label: '🏃 דריבל פנימה מעבר לבלם', type: 'dribble', successChance: .61 },
+            { label: '🎯 הגבהה חדה לרחבת החמש', type: 'cross', successChance: .57 }] },
+          { text: 'קיבלת כדור עם הגב לשער על קצה הרחבה.', options: [
+            { label: '🔄 סיבוב מהיר ובעיטה', type: 'shoot', successChance: .48 },
+            { label: '🧠 קיר קצר עם הקשר', type: 'pass', successChance: .7 }] },
+          { text: 'הקבוצה יוצאת למתפרצת של שלושה על שניים.', options: [
+            { label: '⚡ ממשיך לבד במהירות', type: 'dribble', successChance: .52 },
+            { label: '📐 מסירה אלכסונית לשטח', type: 'assistPass', successChance: .65 }] }
+        ],
+        midfield: [
+          { text: 'אתה מקבל כדור חופשי בין הקווים.', options: [
+            { label: '🎯 מסירת עומק בין הבלמים', type: 'assistPass', successChance: .64 },
+            { label: '💥 בעיטה מסובבת מחוץ לרחבה', type: 'shoot', successChance: .42 }] },
+          { text: 'הלחץ היריב נסגר סביבך במרכז המגרש.', options: [
+            { label: '🪄 דריבל דרך הלחץ', type: 'dribble', successChance: .55 },
+            { label: '🔁 שינוי צד מדויק', type: 'pass', successChance: .75 }] },
+          { text: 'המגן שלך מבצע עקיפה על הקו.', options: [
+            { label: '📤 משחרר אותו במסירה חכמה', type: 'pass', successChance: .74 },
+            { label: '🏃 חודר בעצמך לרחבה', type: 'dribble', successChance: .5 }] },
+          { text: 'כדור שני מגיע אליך אחרי קרן.', options: [
+            { label: '🚀 בועט מהאוויר', type: 'shoot', successChance: .37 },
+            { label: '🧩 מחזיר את הכדור לרחבה', type: 'cross', successChance: .58 }] }
+        ],
+        defense: [
+          { text: 'החלוץ מתקדם מולך במהירות לעבר הרחבה.', options: [
+            { label: '🛡️ גלישה מתוזמנת לכדור', type: 'tackle', successChance: .66 },
+            { label: '↔️ מוליך אותו אל קו החוץ', type: 'contain', successChance: .72 }] },
+          { text: 'הקיצוני מנסה לעקוף אותך באגף.', options: [
+            { label: '💪 מאבק כתף חוקי', type: 'tackle', successChance: .63 },
+            { label: '🧠 סוגר את נתיב המסירה', type: 'intercept', successChance: .7 }] },
+          { text: 'זיהית מסירת עומק מסוכנת לפני החלוץ.', options: [
+            { label: '⚡ יוצא קדימה לחטיפה', type: 'intercept', successChance: .69 },
+            { label: '📍 שומר על קו ההגנה', type: 'contain', successChance: .64 }] },
+          { text: 'לאחר החטיפה נפתח שטח למתפרצת.', options: [
+            { label: '🎯 מסירה ארוכה לחלוץ', type: 'pass', successChance: .6 },
+            { label: '🔒 שומר על הכדור ומרגיע', type: 'safePass', successChance: .82 }] }
+        ],
+        goalkeeper: [
+          { text: 'חלוץ היריב יוצא מולך לאחד על אחד.', options: [
+            { label: '🧤 יוצא לצמצם את הזווית', type: 'rush', successChance: .6 },
+            { label: '📍 נשאר על הקו ומגיב', type: 'hold', successChance: .5 }] },
+          { text: 'כדור גובה מסוכן חוצה את רחבת החמש.', options: [
+            { label: '✊ יוצא באגרופים', type: 'rush', successChance: .65 },
+            { label: '🧤 מנסה לקלוט תחת לחץ', type: 'hold', successChance: .57 }] },
+          { text: 'בעיטה חופשית מכוונת לפינה העליונה.', options: [
+            { label: '🪽 זינוק מוקדם לפינה', type: 'save', successChance: .55 },
+            { label: '👁️ מחכה לרגע הבעיטה', type: 'hold', successChance: .59 }] },
+          { text: 'הכדור אצלך והיריבה לוחצת גבוה.', options: [
+            { label: '🎯 מסירה קצרה לבלם', type: 'safePass', successChance: .8 },
+            { label: '🚀 כדור ארוך למתפרצת', type: 'pass', successChance: .55 }] }
+        ]
+      };
+
+      function getScenarioPool(position) {
+        if (position === 'כנף' || position === 'חלוץ') return DECISION_SCENARIOS.attack;
+        if (position === 'קשר') return DECISION_SCENARIOS.midfield;
+        if (position === 'מגן' || position === 'בלם') return DECISION_SCENARIOS.defense;
+        return DECISION_SCENARIOS.goalkeeper;
+      }
+
+      function getUniqueScenario(position) {
+        const pool = getScenarioPool(position);
+        const available = pool.map((_, i) => i).filter((i) => !matchState.scenariosUsed.includes(i));
+        const index = available.length ? available[randomInt(0, available.length - 1)] : randomInt(0, pool.length - 1);
+        matchState.scenariosUsed.push(index);
+        return pool[index];
+      }
+
+      function getScenarioLayout(position, scenario) {
+        const text = scenario.text;
+        if (position === 'שוער') return 'goalkeeper';
+        if (position === 'מגן' || position === 'בלם') {
+          return text.includes('החטיפה') ? 'counter' : 'defending';
+        }
+        if (text.includes('מול השוער') || text.includes('בין הבלמים')) return 'one-on-one';
+        if (text.includes('אגף') || text.includes('מגן פותח')) return 'wing';
+        if (text.includes('מתפרצת')) return 'counter';
+        if (text.includes('קרן') || text.includes('כדור שני')) return 'set-piece';
+        if (position === 'קשר') return 'midfield';
+        return 'box-entry';
+      }
+
+      const DECISION_MINUTES = [20, 45, 70, 85];
+      let matchState = null;
+      let matchInterval = null;
+
+      function startMatch() {
+        if (careerState.injuryRounds > 0) {
+          simulateMissedMatch();
+          return;
+        }
+
+        const scheduled = careerState.seasonCalendar && careerState.seasonCalendar[careerState.currentRound];
+        const opponents = LEAGUE_TEAMS.filter((t) => t.name !== careerState.team.name);
+        const opponent = scheduled ? scheduled.opponent : opponents[randomInt(0, opponents.length - 1)];
+        const youAreHome = Math.random() < 0.5;
+
+        // Bench logic: Poor rating or first game back
+        const lastMatch = careerState.matchLog[careerState.matchLog.length - 1];
+        const poorForm = lastMatch && lastMatch.includes('ציון משחק') && parseFloat(lastMatch.split('ציון משחק: ')[1]) < 5.5;
+        const justBack = careerState.matchLog.length > 0 && careerState.notifications.some(n => n.title === 'חזרה לכשירות');
+        const isBenched = poorForm || justBack;
+
+        matchState = {
+          opponent: opponent,
+          youAreHome: youAreHome,
+          minute: 1,
+          homeScore: 0,
+          awayScore: 0,
+          goals: 0,
+          assists: 0,
+          matchRating: 6.0,
+          decisionsCompleted: [],
+          scenariosUsed: [],
+          successfulActions: 0,
+          badActions: 0,
+          isBenched: isBenched,
+          subbedIn: false
+        };
+
+        const homeTeam = youAreHome ? careerState.team : opponent;
+        const awayTeam = youAreHome ? opponent : careerState.team;
+
+        renderCrestInto('matchHomeLogo', homeTeam);
+        renderCrestInto('matchAwayLogo', awayTeam);
+        document.getElementById('matchHomeName').textContent = homeTeam.name;
+        document.getElementById('matchAwayName').textContent = awayTeam.name;
+        document.getElementById('matchScore').textContent = '0 - 0';
+        document.getElementById('matchMinute').textContent = '1';
+        document.getElementById('matchProgressFill').style.width = '0%';
+        
+        if (isBenched) {
+          document.getElementById('commentaryBox').textContent = '🪑 אתה פותח על הספסל היום. המאמן החליט לתת לך לחכות להזדמנות.';
+        } else {
+          document.getElementById('commentaryBox').textContent = '⚽ השופט שורק לתחילת המשחק!';
+        }
+
+        document.getElementById('liveGoals').textContent = '0';
+        document.getElementById('liveAssists').textContent = '0';
+        document.getElementById('liveRating').textContent = matchState.matchRating.toFixed(1);
+
+        step4Screen.classList.add('hidden');
+        step5Screen.classList.remove('hidden');
+
+        clearInterval(matchInterval);
+        matchInterval = setInterval(matchTick, 1000);
+      }
+
+      function simulateMissedMatch() {
+        const scheduled = careerState.seasonCalendar[careerState.currentRound];
+        const opponent = scheduled ? scheduled.opponent : LEAGUE_TEAMS[0];
+        
+        // Simulate result
+        const yourScore = randomInt(0, 3);
+        const oppScore = randomInt(0, 3);
+        
+        // Update table
+        const playerRow = careerState.leagueTable.find(r => r.team.name === careerState.team.name);
+        const opponentRow = careerState.leagueTable.find(r => r.team.name === opponent.name);
+        if (playerRow && opponentRow) {
+          playerRow.played++; opponentRow.played++;
+          if (yourScore > oppScore) { playerRow.wins++; playerRow.points += 3; opponentRow.losses++; }
+          else if (yourScore < oppScore) { opponentRow.wins++; opponentRow.points += 3; playerRow.losses++; }
+          else { playerRow.draws++; opponentRow.draws++; playerRow.points++; opponentRow.points++; }
+        }
+        
+        simulateOtherLeagueMatches(careerState.team.name, opponent.name);
+        
+        careerState.injuryRounds--;
+        careerState.currentRound++;
+        careerState.fitness = clamp(careerState.fitness + 15, 0, 100);
+        careerState.sharpness = clamp(careerState.sharpness - 8, 0, 100);
+        
+        if (careerState.injuryRounds === 0) {
+          addNotification('manager', 'חזרה לכשירות', 'הצוות הרפואי: "החלמת מהפציעה! אתה יכול לחזור להתאמן ולשחק."');
+        }
+        
+        renderHub();
+        showToast('🏥 מחזור דולג. התקדמות בהחלמה: ' + yourScore + '-' + oppScore);
+      }
+
+      function renderCrestInto(elementId, team) {
+        const host = document.getElementById(elementId);
+        host.className = 'logo-chip lg';
+        host.innerHTML =
+          '<img class="crest-img" src="' + team.logo + '" alt="' + team.name + '" ' +
+          'onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';" />' +
+          '<span class="crest-fallback" style="background:' + team.color + '">' + getCrestInitials(team.name) + '</span>';
+      }
+
+      function updateScoreDisplay() {
+        document.getElementById('matchScore').textContent = matchState.homeScore + ' - ' + matchState.awayScore;
+      }
+
+      function setCommentary(text) {
+        document.getElementById('commentaryBox').textContent = text;
+      }
+
+      function matchTick() {
+        const m = matchState.minute;
+        document.getElementById('matchMinute').textContent = m;
+        document.getElementById('matchProgressFill').style.width = Math.round((m / 90) * 100) + '%';
+
+        // Bench logic: Sub in at minute 65
+        if (matchState.isBenched && !matchState.subbedIn && m >= 65) {
+          matchState.subbedIn = true;
+          setCommentary('🔄 חילוף! אתה נכנס למגרש בדקה ה-' + m + '. הראה למאמן מה אתה שווה!');
+          showToast('🏃 נכנסת למשחק!');
+        }
+
+        // Flavor commentary, refreshed every few minutes
+        if (m % 4 === 0 && !DECISION_MINUTES.includes(m)) {
+          if (matchState.isBenched && !matchState.subbedIn) {
+            setCommentary('🪑 דקה ' + m + ': אתה צופה במשחק מהספסל. הקבוצה נלחמת על המגרש.');
+          } else {
+            setCommentary('דקה ' + m + ': ' + COMMENTARY_POOL[randomInt(0, COMMENTARY_POOL.length - 1)]);
+          }
+        }
+
+        // Random non-player goal checkpoints
+        if ((m === 20 || m === 50) && Math.random() < 0.45) {
+          const yourSide = matchState.youAreHome ? 'home' : 'away';
+          const scoredByYou = Math.random() < 0.5;
+          if (scoredByYou) {
+            if (yourSide === 'home') matchState.homeScore++; else matchState.awayScore++;
+            setCommentary('⚽ דקה ' + m + ': גול לקבוצת ' + careerState.team.name + '! חברך לקבוצה מכניע את השוער.');
+          } else {
+            if (yourSide === 'home') matchState.awayScore++; else matchState.homeScore++;
+            setCommentary('😬 דקה ' + m + ': גול ל-' + matchState.opponent.name + '. ההגנה הופתעה.');
+          }
+          updateScoreDisplay();
+        }
+
+        // Decisions only if subbed in or not benched
+        if (!matchState.isBenched || matchState.subbedIn) {
+          if (DECISION_MINUTES.includes(m) && !matchState.decisionsCompleted.includes(m)) {
+            clearInterval(matchInterval);
+            showDecision(m);
+            return;
+          }
+        }
+
+        if (m >= 90) {
+          clearInterval(matchInterval);
+          endMatch();
+          return;
+        }
+
+        matchState.minute++;
+      }
+
+      function showDecision(minute) {
+        const scenario = getUniqueScenario(playerProfile.position);
+        const prompts = {
+          20: 'המשחק נפתח ואתה מקבל הזדמנות ראשונה. ',
+          45: 'רגע לפני הירידה למחצית. ',
+          70: 'הקצב עולה והקהל דוחף קדימה. ',
+          85: 'דקות ההכרעה הגיעו. '
+        };
+        document.getElementById('decisionText').textContent = '🔥 דקה ' + minute + ': ' + prompts[minute] + scenario.text;
+
+        const pitch = document.getElementById('decisionPitch');
+        pitch.dataset.layout = getScenarioLayout(playerProfile.position, scenario);
+        const ball = document.getElementById('pitchBall');
+        ball.className = 'pitch-ball';
+        const result = document.getElementById('pitchResult');
+        result.className = 'pitch-result';
+        result.textContent = '';
+
+        const optionsHost = document.getElementById('decisionOptions');
+        optionsHost.className = 'decision-options';
+        optionsHost.innerHTML = '';
+        scenario.options.forEach((opt, i) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'decision-btn';
+          btn.textContent = (i + 1) + '. ' + opt.label;
+          btn.addEventListener('click', () => resolveDecision(opt));
+          optionsHost.appendChild(btn);
+        });
+
+        document.getElementById('decisionOverlay').classList.add('show');
+      }
+
+      function resolveDecision(option) {
+        const optionsHost = document.getElementById('decisionOptions');
+        optionsHost.classList.add('locked');
+        matchState.decisionsCompleted.push(matchState.minute);
+
+        const success = Math.random() < option.successChance;
+        const yourSide = matchState.youAreHome ? 'home' : 'away';
+        const attacking = ['shoot', 'assistPass', 'cross'].includes(option.type);
+        const passing = ['pass', 'safePass'].includes(option.type);
+        const defensive = ['tackle', 'contain', 'intercept', 'rush', 'hold', 'save'].includes(option.type);
+        let text = '';
+        let animationClass = '';
+
+        if (option.type === 'shoot') {
+          animationClass = success ? 'to-goal' : (Math.random() < .5 ? 'to-keeper' : 'out');
+          if (success) {
+            matchState.goals++;
+            matchState.matchRating += 1.3;
+            matchState.successfulActions++;
+            if (yourSide === 'home') matchState.homeScore++; else matchState.awayScore++;
+            text = '⚽ שער נהדר! הביצוע היה מדויק והכדור פגש את הרשת.';
+          } else {
+            matchState.matchRating -= .35;
+            matchState.badActions++;
+            text = animationClass === 'to-keeper' ? '🧤 השוער קרא את הבעיטה וקלט.' : '❌ הכדור חלף מחוץ למסגרת.';
+          }
+        } else if (['assistPass', 'cross'].includes(option.type)) {
+          animationClass = 'to-mate';
+          if (success) {
+            matchState.assists++;
+            matchState.matchRating += 1.0;
+            matchState.successfulActions++;
+            if (yourSide === 'home') matchState.homeScore++; else matchState.awayScore++;
+            text = '🎯 מסירה מושלמת ובישול! החבר לקבוצה מסיים לרשת.';
+          } else {
+            matchState.matchRating -= .2;
+            matchState.badActions++;
+            text = '🚫 ההגנה קראה את המסירה והרחיקה.';
+          }
+        } else if (option.type === 'dribble') {
+          animationClass = success ? 'to-mate' : 'tackle';
+          if (success) {
+            matchState.matchRating += .2;
+            matchState.successfulActions++;
+            text = '🪄 דריבל מצוין — עברת את השומר ושמרת על ההתקפה.';
+          } else {
+            matchState.matchRating -= .3;
+            matchState.badActions++;
+            text = '🛑 המגן חטף את הכדור וסיים את המהלך.';
+          }
+        } else if (passing) {
+          animationClass = 'to-mate';
+          if (success) {
+            matchState.matchRating += .2;
+            matchState.successfulActions++;
+            text = '✅ מסירה מדויקת שמקדמת את הקבוצה.';
+          } else {
+            matchState.matchRating -= .2;
+            matchState.badActions++;
+            text = '⚠️ המסירה לא הגיעה ליעדה.';
+          }
+        } else if (defensive) {
+          animationClass = success ? 'tackle' : 'to-goal';
+          if (success) {
+            matchState.matchRating += .2;
+            matchState.successfulActions++;
+            text = '🛡️ פעולה הגנתית מצוינת — הסכנה נעצרה.';
+          } else {
+            matchState.matchRating -= .4;
+            matchState.badActions++;
+            if (option.type === 'rush' || option.type === 'hold' || option.type === 'save' || option.type === 'tackle') {
+              if (yourSide === 'home') matchState.awayScore++; else matchState.homeScore++;
+              text = '😣 הפעולה נכשלה והיריבה ניצלה זאת לשער.';
+            } else {
+              text = '⚠️ היריב עבר אותך והמשיך את ההתקפה.';
+            }
+          }
+        }
+
+        matchState.matchRating = clamp(matchState.matchRating, 1, 10);
+        const ball = document.getElementById('pitchBall');
+        ball.className = 'pitch-ball ' + animationClass;
+
+        setTimeout(() => {
+          if (attacking && success && option.type !== 'cross' && option.type !== 'assistPass') {
+            document.querySelector('.pitch-goal').animate(
+              [{ transform: 'scale(1)' }, { transform: 'scale(1.14)' }, { transform: 'scale(1)' }],
+              { duration: 450 }
+            );
+          }
+          const visualResult = document.getElementById('pitchResult');
+          visualResult.textContent = text;
+          visualResult.classList.add('show');
+          updateScoreDisplay();
+          setCommentary(text);
+          document.getElementById('liveGoals').textContent = matchState.goals;
+          document.getElementById('liveAssists').textContent = matchState.assists;
+          document.getElementById('liveRating').textContent = matchState.matchRating.toFixed(1);
+        }, 1150);
+
+        setTimeout(() => {
+          document.getElementById('decisionOverlay').classList.remove('show');
+          showToast(text);
+          matchState.minute += 1;
+          matchInterval = setInterval(matchTick, 1000);
+        }, 2450);
+      }
+
+      function endMatch() {
+        careerState.stats.goals += matchState.goals;
+        careerState.stats.assists += matchState.assists;
+        careerState.stats.matches += 1;
+        careerState.fitness = clamp(careerState.fitness - 15, 0, 100);
+
+        if (matchState.matchRating < 5.5) {
+          careerState.sharpness = clamp(careerState.sharpness - 12, 0, 100);
+        }
+
+        // Injury logic: Under 50% fitness triggers a 35% chance of hamstring injury
+        if (careerState.fitness < 50 && Math.random() < 0.35) {
+          careerState.injuryRounds = randomInt(2, 4);
+          addNotification('manager', 'פציעה בשריר הירך', 'הצוות הרפואי: "נפצעת בשריר הירך האחורי. תצטרך לנוח ' + careerState.injuryRounds + ' מחזורים."');
+        }
+
+        // OVR grows slowly: a high match grade contributes to a hidden
+        // development meter; only sustained form produces a permanent +1.
+        careerState.developmentPoints = careerState.developmentPoints || 0;
+        if (matchState.matchRating >= 8.0) careerState.developmentPoints += 2;
+        else if (matchState.matchRating >= 7.2) careerState.developmentPoints += 1;
+        else if (matchState.matchRating < 5.5) careerState.developmentPoints = Math.max(0, careerState.developmentPoints - 1);
+        const ovrGain = careerState.developmentPoints >= 6 ? 1 : 0;
+        if (ovrGain) careerState.developmentPoints -= 6;
+        careerState.overall = clamp(careerState.overall + ovrGain, 1, 99);
+
+        const yourScore = matchState.youAreHome ? matchState.homeScore : matchState.awayScore;
+        const oppScore = matchState.youAreHome ? matchState.awayScore : matchState.homeScore;
+        const outcome = yourScore > oppScore ? 'ניצחון 🏆' : (yourScore < oppScore ? 'הפסד 😔' : 'תיקו 🤝');
+        careerState.mood = clamp(careerState.mood + (yourScore > oppScore ? 7 : (yourScore < oppScore ? -6 : 1)), 0, 100);
+
+        // Update table for the player's fixture.
+        const playerRow = careerState.leagueTable.find((row) => row.team.name === careerState.team.name);
+        const opponentRow = careerState.leagueTable.find((row) => row.team.name === matchState.opponent.name);
+        if (playerRow && opponentRow) {
+          playerRow.played++; opponentRow.played++;
+          if (yourScore > oppScore) {
+            playerRow.wins++; playerRow.points += 3; opponentRow.losses++;
+          } else if (yourScore < oppScore) {
+            opponentRow.wins++; opponentRow.points += 3; playerRow.losses++;
+          } else {
+            playerRow.draws++; opponentRow.draws++; playerRow.points++; opponentRow.points++;
+          }
+        }
+
+        // Simulate every other league fixture for this match week. Prestige
+        // weights keep elite clubs highly competitive while allowing upsets.
+        simulateOtherLeagueMatches(careerState.team.name, matchState.opponent.name);
+
+        // Monthly payroll: four weekly salaries are paid together every 4 matches.
+        careerState.matchesSinceSalary += 1;
+        let salaryMessage = 'ללא תשלום במשחק זה';
+        if (careerState.matchesSinceSalary >= 4) {
+          const monthlyPay = careerState.contract.salary * 4;
+          careerState.totalEarned += monthlyPay;
+          careerState.matchesSinceSalary = 0;
+          salaryMessage = 'משכורת חודשית: ' + formatShekel(monthlyPay);
+          addNotification('finance', 'המשכורת הופקדה', 'מחלקת הכספים: לחשבונך הופקדו ' + formatShekel(monthlyPay) + ' עבור ארבעת השבועות האחרונים.');
+        }
+
+        careerState.currentRound = Math.min(careerState.currentRound + 1, careerState.seasonCalendar.length - 1);
+        
+        // End of season check (Round 10 or end of calendar)
+        if (careerState.currentRound >= 10 || careerState.currentRound >= careerState.seasonCalendar.length - 1) {
+          setTimeout(showTransferMarket, 2000);
+        }
+
+        const homeTeamName = matchState.youAreHome ? careerState.team.name : matchState.opponent.name;
+        const awayTeamName = matchState.youAreHome ? matchState.opponent.name : careerState.team.name;
+        const logLine = homeTeamName + ' ' + matchState.homeScore + ' - ' + matchState.awayScore + ' ' + awayTeamName +
+          ' • ' + outcome + ' • גולים: ' + matchState.goals + ', בישולים: ' + matchState.assists;
+        careerState.matchLog.push(logLine);
+
+        if (matchState.goals + matchState.assists > 0 || matchState.matchRating >= 7.5) {
+          addNotification('news', 'כותרת הספורט', 'חדשות ספורט: ' + playerProfile.fullName + ' הולך ומסתמן כהבטחה הגדולה של העונה! ציון משחק: ' + matchState.matchRating.toFixed(1));
+        } else {
+          addNotification('manager', 'סיכום המאמן', 'המאמן: "נמשיך לעבוד. אני מצפה לראות ממך יותר במשחק הבא." ציון משחק: ' + matchState.matchRating.toFixed(1));
+        }
+
+        try {
+          localStorage.setItem('careerState', JSON.stringify(careerState));
+        } catch (err) {
+          /* localStorage unavailable - continue without persistence */
+        }
+
+        document.getElementById('resultEmoji').textContent = yourScore > oppScore ? '🏆' : (yourScore < oppScore ? '😔' : '🤝');
+        document.getElementById('resultTitle').textContent = 'שריקת סיום! ' + outcome;
+        document.getElementById('resultSummary').innerHTML =
+          '<div class="summary-row"><span>תוצאה סופית</span><strong>' + matchState.homeScore + ' - ' + matchState.awayScore + '</strong></div>' +
+          '<div class="summary-row"><span>גולים שלך</span><strong>' + matchState.goals + '</strong></div>' +
+          '<div class="summary-row"><span>בישולים שלך</span><strong>' + matchState.assists + '</strong></div>' +
+          '<div class="summary-row"><span>ציון משחק</span><strong>' + matchState.matchRating.toFixed(1) + '</strong></div>' +
+          '<div class="summary-row"><span>דירוג כללי</span><strong>' + careerState.overall + (ovrGain ? ' (+1)' : '') + '</strong></div>' +
+          '<div class="summary-row"><span>מצב שכר</span><strong>' + salaryMessage + '</strong></div>';
+
+        document.getElementById('resultOverlay').classList.add('show');
+      }
+
+      function showTransferMarket() {
+        const grid = document.getElementById('transferGrid');
+        grid.innerHTML = '';
+        
+        // Generate 2 dynamic offers
+        let pool = LEAGUE_TEAMS.filter(t => t.name !== careerState.team.name);
+        let selectedTeams = shuffle(pool).slice(0, 2);
+        
+        const offers = selectedTeams.map(team => {
+          const contract = generateContract(team);
+          // Higher tier / 3x salary if OVR > 65 and high stats
+          if (careerState.overall > 65 && (careerState.stats.goals + careerState.stats.assists) > 5) {
+            contract.salary *= 3;
+            contract.role = 'כוכב על';
+          }
+          return { team, contract };
+        });
+
+        offers.forEach((offer, index) => {
+          const card = document.createElement('div');
+          card.className = 'team-card';
+          card.style.setProperty('--team-color', offer.team.color);
+          card.innerHTML = `
+            <div class="team-card-top">
+              <span class="tier-badge" data-tier="${offer.team.tier}">${offer.team.tier === 'big' ? 'קבוצת ענק' : (offer.team.tier === 'medium' ? 'אמצע הטבלה' : 'קבוצה קטנה')}</span>
+              ${crestChipHTML(offer.team, 'lg')}
+            </div>
+            <h3 class="team-name">${offer.team.name}</h3>
+            <div class="contract-list" dir="rtl">
+              <div class="contract-row"><span>💰 שכר שבועי</span><span class="c-value">${formatShekel(offer.contract.salary)}</span></div>
+              <div class="contract-row"><span>📋 מעמד בסגל</span><span class="c-value">${offer.contract.role}</span></div>
+            </div>
+            <button type="button" class="sign-btn" onclick="migrateToClub(${index}, ${JSON.stringify(offers).replace(/"/g, '&quot;')})">✍️ חתום ועבור מועדון</button>
+          `;
+          grid.appendChild(card);
+        });
+
+        document.getElementById('step4Screen').classList.add('hidden');
+        document.getElementById('transferOverlay').classList.remove('hidden');
+      }
+
+      window.migrateToClub = function(idx, offers) {
+        const chosen = offers[idx];
+        careerState.team = chosen.team;
+        careerState.contract = chosen.contract;
+        resetSeason();
+      };
+
+      document.getElementById('stayAtClubBtn').addEventListener('click', function() {
+        resetSeason();
+      });
+
+      function resetSeason() {
+        careerState.currentRound = 0;
+        careerState.seasonCalendar = generateSeasonCalendar();
+        careerState.leagueTable = generateLeagueTable();
+        document.getElementById('transferOverlay').classList.add('hidden');
+        renderHub();
+        document.getElementById('step4Screen').classList.remove('hidden');
+        showToast('⚽ עונה חדשה התחילה!');
+      }
+
+      document.getElementById('backToHubBtn').addEventListener('click', function () {
+        document.getElementById('resultOverlay').classList.remove('show');
+        step5Screen.classList.add('hidden');
+        renderHub();
+        step4Screen.classList.remove('hidden');
+      });
+
+      document.getElementById('playMatchBtn').addEventListener('click', startMatch);
+    })();
+  </script>
+</body>
+</html>
